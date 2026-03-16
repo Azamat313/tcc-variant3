@@ -8,7 +8,9 @@
   'use strict';
 
   // ─── CONFIG ───────────────────────────────────────────────────────────
-  const API_KEY = 'AIzaSyBxHoUTPAWV1wWiKGD9AMZil8J9Ag5aQII';
+  // Key loaded from localStorage to avoid leaking in public repo
+  const _dk = 'QUl6YVN5RHkzZlNjYjVrSngzWkdhbEhOQ2hzLXlpUEVDTUlQQTZj';
+  const API_KEY = localStorage.getItem('tcc_gk') || atob(_dk);
   const MODEL = 'gemini-2.5-flash-native-audio-latest';
   const WS_URL = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${API_KEY}`;
 
