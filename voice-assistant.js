@@ -1282,19 +1282,11 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
           systemInstruction: {
             parts: [{ text: SYSTEM_PROMPT }]
           },
-          tools: TOOLS,
-          realtimeInputConfig: {
-            automaticActivityDetection: {
-              disabled: false,
-              startOfSpeechSensitivity: 'START_OF_SPEECH_SENSITIVITY_HIGH',
-              endOfSpeechSensitivity: 'END_OF_SPEECH_SENSITIVITY_HIGH',
-              prefixPaddingMs: 200,
-              silenceDurationMs: 700
-            }
-          }
+          tools: TOOLS
         }
       };
 
+      console.log('[Aysha] Sending setup:', JSON.stringify(setupMsg).substring(0,200));
       ws.send(JSON.stringify(setupMsg));
     };
 
@@ -1322,6 +1314,17 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
   }
 
   function handleWsMessage(event) {
+    var rawData = typeof event.data === 'string' ? event.data : null;
+    if (event.data instanceof Blob) {
+      event.data.text().then(function(text) {
+        try {
+          var blobMsg = JSON.parse(text);
+          console.log('[Aysha] Blob msg:', Object.keys(blobMsg));
+          processMessage(blobMsg);
+        } catch(e) {}
+      });
+      return;
+    }
     if (typeof event.data === 'string') {
       var msg;
       try {
@@ -1329,6 +1332,12 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
       } catch (e) {
         return;
       }
+      console.log('[Aysha] Msg:', Object.keys(msg));
+      processMessage(msg);
+    }
+  }
+
+  function processMessage(msg) {
 
       if (msg.setupComplete) {
         startMicCapture();
@@ -1347,7 +1356,6 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
       if (msg.toolCall) {
         handleToolCall(msg.toolCall);
       }
-    }
   }
 
   function handleServerContent(content) {
