@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TransCaspian Cargo — Интеллектуальная платформа логистики Евразии</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:#FFFFFF;color:#1a1a1a;font-family:'Montserrat',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+::selection{background:rgba(198,164,109,.25);color:#1a1a1a}
+:root{
+  --gold:#C6A46D;--gold-light:#D4B87E;--gold-dark:#A38450;
+  --navy:#1B2A4A;--navy-light:#2D4A7A;
+  --bg:#FFFFFF;--bg-alt:#FAFBFD;--bg-card:#FFFFFF;
+  --text:#1B2A4A;--text-mid:#3D5070;--text-light:#7A8BA8;
+  --border:rgba(198,164,109,.15);--border-light:rgba(27,42,74,.05);
+}
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;transition:background .3s,border .3s,box-shadow .3s}
+.nav.scrolled{background:rgba(255,255,255,.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--border-light);box-shadow:0 2px 20px rgba(0,0,0,.05)}
+.nav-inner{max-width:100%;margin:0;padding:0 40px;display:flex;align-items:center;justify-content:space-between;height:72px}
+.nav-logo{display:flex;align-items:center;gap:12px}
+.nav-logo img{height:36px;background:var(--navy);padding:5px 10px;border-radius:6px;animation:logoNudge 4s ease-in-out infinite}
+@keyframes logoNudge{0%,100%{transform:translateX(0)}8%{transform:translateX(3px)}16%{transform:translateX(0)}}
+.nav-logo span{font-size:11px;color:var(--text-light);font-weight:500;letter-spacing:.02em;border-left:1px solid var(--border);padding-left:12px;line-height:1.3}
+.nav-links{display:flex;gap:18px}
+.nav-links a{font-size:11px;color:var(--text-mid);font-weight:600;letter-spacing:.03em;text-transform:uppercase;transition:color .3s;position:relative;white-space:nowrap}
+.nav-links a:hover,.nav-links a.active{color:var(--gold)}
+.nav-links a.active::after{width:100%}
+.nav-links a::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:2px;background:var(--gold);transition:width .3s}
+.nav-links a:hover::after{width:100%}
+.nav-right{display:flex;align-items:center;gap:12px}
+.lang-switch{display:flex;gap:4px;background:rgba(27,42,74,.04);border-radius:20px;padding:3px;border:1px solid var(--border-light)}
+.lang-btn{padding:5px 12px;border-radius:16px;font-size:11px;font-weight:600;border:none;cursor:pointer;background:transparent;color:var(--text-light);transition:all .3s}
+.lang-btn.active{background:var(--navy);color:#fff}
+.nav-cta{background:var(--navy);color:#fff;padding:8px 20px;border-radius:20px;font-size:12px;font-weight:700;border:none;cursor:pointer;transition:all .3s}
+.nav-cta:hover{background:var(--navy-light);transform:translateY(-1px);box-shadow:0 4px 12px rgba(27,42,74,.2)}
+.nav-burger{display:none;background:none;border:none;color:var(--text-mid);cursor:pointer;padding:4px}
+.mobile-menu{display:none;flex-direction:column;gap:0;background:#fff;border-top:1px solid var(--border-light)}
+.mobile-menu a{padding:14px 24px;color:var(--text-mid);font-size:13px;font-weight:600;border-bottom:1px solid var(--border-light);transition:color .3s}
+.mobile-menu a:hover{color:var(--gold)}
+.hero{position:relative;min-height:100vh;overflow:hidden;display:flex;flex-direction:column;background:#FFFFFF}
+.hero-grid{position:absolute;inset:0;opacity:.02;background:linear-gradient(var(--navy) 1px,transparent 1px),linear-gradient(90deg,var(--navy) 1px,transparent 1px);background-size:80px 80px}
+.hero-content{position:relative;z-index:20;max-width:1200px;margin:0 auto;padding:100px 32px 0;text-align:center}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;background:rgba(27,42,74,.04);border:1px solid rgba(27,42,74,.08);border-radius:24px;padding:6px 18px;margin-bottom:24px}
+.hero-eyebrow svg{width:16px;height:16px;color:var(--navy)}
+.hero-eyebrow span{font-size:11px;color:var(--navy);font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.hero-title{font-size:clamp(28px,5vw,54px);font-weight:800;line-height:1.12;margin-bottom:20px;max-width:800px;margin-left:auto;margin-right:auto;color:var(--text)}
+.hero-title .gold{background:linear-gradient(135deg,var(--gold),var(--gold-light));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+@keyframes heroFadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shimmerText{0%{background-position:200% center}100%{background-position:-200% center}}
+.globe-wrap{position:absolute;bottom:0;left:50%;transform:translateX(-50%) translateY(40%);width:min(1000px,80vw);aspect-ratio:1;z-index:5}
+.globe-wrap canvas{width:100%!important;height:100%!important}
+.hero-fade{position:absolute;bottom:0;left:0;right:0;height:80px;background:linear-gradient(to top,#fff,transparent);z-index:15}
+
+/* Side columns */
+.hero-sides{position:absolute;bottom:40px;left:0;right:0;z-index:20;max-width:1200px;margin:0 auto;padding:0 32px;display:grid;grid-template-columns:220px 1fr 220px;align-items:end;pointer-events:none}
+.side-left,.side-right{pointer-events:auto;background:rgba(255,255,255,.15);backdrop-filter:blur(4px);padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,.08)}
+.side-left .side-label{font-size:10px;color:var(--gold);text-transform:uppercase;letter-spacing:.15em;margin-bottom:6px;font-weight:700}
+.side-left h3{font-size:18px;font-weight:800;line-height:1.25;margin-bottom:4px;color:var(--text)}
+.side-left p{font-size:12px;color:var(--text-light);line-height:1.5;margin-bottom:8px}
+.side-link{font-size:11px;color:var(--gold);font-weight:600;display:inline-flex;align-items:center;gap:4px;transition:color .3s}
+.side-link:hover{color:var(--gold-dark)}
+.side-right .side-label{font-size:10px;color:var(--gold);text-transform:uppercase;letter-spacing:.15em;margin-bottom:8px;text-align:right;font-weight:700}
+.stat-item{display:flex;align-items:baseline;gap:10px;margin-bottom:6px;justify-content:flex-end}
+.stat-val{font-size:24px;font-weight:900;color:var(--gold);line-height:1;white-space:nowrap}
+.stat-val small{font-size:11px;color:var(--text-light);margin-left:2px}
+.stat-label{font-size:9px;color:var(--text-light);line-height:1.3;text-align:right}
+.stat-divider{width:100%;height:1px;background:rgba(198,164,109,.15);margin:5px 0}
+.hero-bottom{position:absolute;bottom:12px;left:0;right:0;z-index:20;max-width:1200px;margin:0 auto;padding:0 32px;display:flex;justify-content:space-between;align-items:center;pointer-events:none}
+.hero-bottom p{font-size:9px;color:var(--text-light);letter-spacing:.15em;text-transform:uppercase;opacity:.5}
+.hero-sub{font-size:clamp(14px,1.5vw,17px);color:var(--text-mid);max-width:600px;margin:0 auto 32px;line-height:1.8;font-weight:400}
+.hero-badges{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:32px}
+.hero-badge{display:flex;align-items:center;gap:6px;background:var(--bg-card);border:1px solid var(--border-light);border-radius:8px;padding:8px 16px;font-size:12px;color:var(--text-mid);font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.hero-badge svg{width:16px;height:16px;color:var(--gold)}
+.hero-btns{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:48px}
+.btn-gold{background:var(--navy);color:#fff;padding:14px 32px;border-radius:28px;font-weight:700;font-size:13px;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(27,42,74,.15);transition:all .3s;letter-spacing:.02em}
+.btn-gold:hover{background:var(--navy-light);transform:translateY(-2px);box-shadow:0 8px 24px rgba(27,42,74,.2)}
+.btn-outline{background:transparent;color:var(--navy);padding:14px 32px;border-radius:28px;font-weight:600;font-size:13px;border:1px solid rgba(27,42,74,.15);cursor:pointer;transition:all .3s}
+.btn-outline:hover{border-color:var(--navy);color:var(--navy);background:rgba(27,42,74,.03)}
+.reveal{opacity:0;transform:translateY(30px);transition:opacity .7s ease,transform .7s ease}.reveal.visible{opacity:1;transform:translateY(0)}
+.reveal-scale{opacity:0;transform:scale(.95);transition:opacity .7s ease,transform .7s ease}.reveal-scale.visible{opacity:1;transform:scale(1)}
+.section{padding:80px 24px;max-width:1200px;margin:0 auto}
+.section-label{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--gold-dark);font-weight:700;letter-spacing:.15em;text-transform:uppercase;margin-bottom:14px}
+.section-label::before{content:'';width:24px;height:2px;background:var(--gold);border-radius:1px}
+.section-title{font-size:clamp(24px,3.5vw,40px);font-weight:800;margin-bottom:16px;line-height:1.15;color:var(--text)}
+.section-title .gold{color:var(--gold)}
+.section-desc{font-size:15px;color:var(--text-mid);line-height:1.8;max-width:600px;margin-bottom:48px}
+.func-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.func-card{background:var(--bg-card);border:1px solid var(--border-light);border-radius:16px;padding:32px 28px;transition:all .4s;position:relative;overflow:hidden}
+.func-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--gold);opacity:0;transition:opacity .4s}
+.func-card:hover{transform:translateY(-6px);box-shadow:0 12px 40px rgba(0,0,0,.06);border-color:rgba(198,164,109,.2)}
+.func-card:hover::before{opacity:1}
+.func-icon{width:48px;height:48px;border-radius:12px;background:rgba(198,164,109,.06);border:1px solid rgba(198,164,109,.12);display:flex;align-items:center;justify-content:center;margin-bottom:18px;color:var(--gold);transition:all .4s}
+.func-card:hover .func-icon{background:rgba(198,164,109,.12);box-shadow:0 0 20px rgba(198,164,109,.1)}
+.func-card h3{font-size:16px;font-weight:700;margin-bottom:10px;color:var(--text);transition:color .3s}
+.func-card:hover h3{color:var(--gold)}
+.func-card p{font-size:13px;color:var(--text-light);line-height:1.7}
+.stats-bar{background:var(--navy);padding:48px 24px}
+.stats-grid{max-width:1000px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:24px;text-align:center}
+.stat-box{padding:16px}
+.stat-num{font-size:36px;font-weight:900;color:var(--gold-light);line-height:1}
+.stat-num small{font-size:16px;color:rgba(255,255,255,.35)}
+.stat-desc{font-size:11px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.04em;margin-top:6px;line-height:1.5}
+.preview-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.preview-card{background:var(--bg-card);border:1px solid var(--border-light);border-radius:16px;padding:32px;transition:all .4s}
+.preview-card:hover{transform:translateY(-4px);box-shadow:0 8px 30px rgba(0,0,0,.06);border-color:rgba(198,164,109,.2)}
+.preview-card .tag{font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
+.preview-card h3{font-size:16px;font-weight:700;margin-bottom:10px;line-height:1.3}
+.preview-card p{font-size:13px;color:var(--text-light);line-height:1.6;margin-bottom:16px}
+.preview-card .link{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--gold);transition:gap .3s}
+.preview-card .link:hover{gap:8px}
+.cta-banner{background:linear-gradient(135deg,var(--navy),#0F1D35);padding:64px 24px;text-align:center;position:relative;overflow:hidden}
+.cta-banner::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0v60M0 30h60' stroke='%23fff' stroke-width='.5' opacity='.05'/%3E%3C/svg%3E")}
+.cta-banner h2{font-size:clamp(24px,3vw,36px);font-weight:800;color:#fff;margin-bottom:12px;position:relative}
+.cta-banner p{font-size:15px;color:rgba(255,255,255,.75);margin-bottom:28px;position:relative}
+.cta-banner .btn-white{background:#fff;color:var(--navy);padding:14px 36px;border-radius:28px;font-weight:700;font-size:14px;border:none;cursor:pointer;transition:all .3s;position:relative}
+.cta-banner .btn-white:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.15)}
+.kz-ornament{position:absolute;pointer-events:none;z-index:1}
+footer{background:#0F172A;color:#fff;padding:64px 24px 32px}
+.footer-inner{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:40px}
+.footer-brand img{height:28px;margin-bottom:14px}
+.footer-brand p{font-size:12px;color:rgba(255,255,255,.35);line-height:1.7;margin-bottom:20px}
+.footer-socials{display:flex;gap:8px}
+.footer-socials a{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.3);transition:all .3s}
+.footer-socials a:hover{color:var(--gold-light);border-color:rgba(198,164,109,.3)}
+.footer-col h4{font-size:11px;font-weight:600;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.1em;margin-bottom:16px}
+.footer-col a{display:block;font-size:12px;color:rgba(255,255,255,.3);margin-bottom:10px;transition:color .3s}
+.footer-col a:hover{color:var(--gold-light)}
+.footer-copy{max-width:1200px;margin:32px auto 0;padding-top:24px;border-top:1px solid rgba(255,255,255,.06);text-align:center;font-size:10px;color:rgba(255,255,255,.15)}
+@media(max-width:1024px){
+  .nav-links{display:none!important}.nav-burger{display:block}.mobile-menu.open{display:flex}
+  .hero-content{padding-top:110px}
+  .side-left,.side-right,.hero-bottom{display:none!important}
+  .hero-sides{display:none!important}
+  .func-grid,.preview-grid{grid-template-columns:1fr 1fr}
+  .section [style*="grid-template-columns:repeat(4"]{grid-template-columns:1fr 1fr!important}
+  [style*="grid-template-columns:1fr 1fr 1fr 1fr"]{grid-template-columns:1fr 1fr!important}
+  .section [style*="grid-template-columns:1fr 1fr;gap:48px"]{grid-template-columns:1fr!important}
+  .section [style*="grid-template-columns:1.3fr 1fr"]{grid-template-columns:1fr!important}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .footer-inner{grid-template-columns:1fr 1fr}
+  .globe-wrap{width:min(750px,85vw)!important;transform:translateX(-50%) translateY(50%)!important}
+  .nav-inner{padding:0 24px}
+}
+@media(max-width:640px){
+  .hero-content{padding-top:90px}
+  .hero-title{font-size:clamp(22px,6vw,32px)}
+  .hero-sub{font-size:14px}
+  .hero-btns{flex-direction:column;padding:0 16px}
+  .btn-gold,.btn-outline{width:100%;text-align:center}
+  .hero-badges{padding:0 16px}
+  .func-grid,.preview-grid{grid-template-columns:1fr}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .footer-inner{grid-template-columns:1fr}
+  .section{padding:64px 16px}
+  .nav-inner{padding:0 16px}
+  .nav-right .lang-switch{display:none}
+  .nav-right .nav-cta{padding:6px 14px;font-size:10px}
+  .globe-wrap{width:min(500px,95vw)!important;transform:translateX(-50%) translateY(55%)!important}
+  .stats-bar{padding:32px 16px}
+  img{max-width:100%;height:auto}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">
+      <img src="https://optim.tildacdn.pro/tild6637-3765-4438-b135-366537363233/-/resize/176x/-/format/webp/noroot.png.webp" alt="TCC">
+      <span>Платформа отраслевой<br>экспертизы</span>
+    </a>
+    <div class="nav-links">
+      <a href="index.html" class="active">ГЛАВНАЯ</a>
+      <a href="about.html">О НАС</a>
+      <a href="analytics.html">АНАЛИТИКА</a>
+      <a href="solutions.html">РЕШЕНИЯ</a>
+      <a href="education.html">ОБУЧЕНИЕ</a>
+      <a href="wiki.html"><span style="letter-spacing:.12em">WIKI</span>ЛОГИСТ</a>
+      <a href="corridor.html">МАРШРУТЫ</a>
+      <a href="https://tcchub.kz" target="_blank" style="color:var(--gold)">TCC HUB ↗</a>
+      <a href="contacts.html">КОНТАКТЫ</a>
+    </div>
+    <div class="nav-right">
+      <div class="lang-switch"><button class="lang-btn active">РУС</button><button class="lang-btn">ҚАЗ</button><button class="lang-btn">ENG</button></div>
+      <a href="https://tcchub.kz/login/index.php" target="_blank" style="padding:8px 16px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid var(--border);color:var(--text-mid);cursor:pointer;text-decoration:none;transition:all .3s" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-mid)'">ВОЙТИ</a>
+      <button class="nav-cta" onclick="location.href='contacts.html'">СВЯЗАТЬСЯ</button>
+    </div>
+    <button class="nav-burger" onclick="document.getElementById('mobileMenu').classList.toggle('open')">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="index.html" onclick="this.parentElement.classList.remove('open')">ГЛАВНАЯ</a>
+    <a href="about.html" onclick="this.parentElement.classList.remove('open')">О ПЛАТФОРМЕ</a>
+    <a href="analytics.html" onclick="this.parentElement.classList.remove('open')">АНАЛИТИКА</a>
+    <a href="solutions.html" onclick="this.parentElement.classList.remove('open')">РЕШЕНИЯ</a>
+    <a href="education.html" onclick="this.parentElement.classList.remove('open')">ОБРАЗОВАНИЕ</a>
+    <a href="projects.html" onclick="this.parentElement.classList.remove('open')">ПРОЕКТЫ</a>
+    <a href="media.html" onclick="this.parentElement.classList.remove('open')">МЕДИА</a>
+    <a href="contacts.html" onclick="this.parentElement.classList.remove('open')">КОНТАКТЫ</a>
+  </div>
+</nav>
+
+<section class="hero" id="main">
+  <div class="hero-grid"></div>
+  <div class="kz-ornament" style="top:80px;right:30px;width:250px;height:250px;opacity:.04">
+    <svg viewBox="0 0 200 200" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linecap="round">
+      <path d="M100 40 C70 40,40 60,40 90 C40 120,60 140,80 140 C60 140,40 160,40 180"/>
+      <path d="M100 40 C130 40,160 60,160 90 C160 120,140 140,120 140 C140 140,160 160,160 180"/>
+      <path d="M80 140 C80 120,90 110,100 110 C110 110,120 120,120 140"/>
+      <path d="M40 180 C30 180,20 170,20 160 C20 145,35 135,45 140"/>
+      <path d="M160 180 C170 180,180 170,180 160 C180 145,165 135,155 140"/>
+    </svg>
+  </div>
+  <div class="kz-ornament" style="top:120px;left:20px;width:180px;height:180px;opacity:.03">
+    <svg viewBox="0 0 200 200" fill="none" stroke="var(--gold)" stroke-width="1.2" stroke-linecap="round">
+      <path d="M50 100 C50 70,80 50,100 50 C120 50,130 70,130 80 C130 90,120 100,100 100"/>
+      <path d="M100 100 C80 100,70 110,70 120 C70 130,80 150,100 150 C120 150,150 130,150 100"/>
+      <path d="M20 20 C20 40,40 50,50 40 C55 35,50 25,40 25"/>
+      <path d="M180 180 C180 160,160 150,150 160 C145 165,150 175,160 175"/>
+      <path d="M100 30 L140 100 L100 170 L60 100 Z" stroke-width="1"/>
+    </svg>
+  </div>
+  <div class="hero-content">
+    <h1 class="hero-title" style="margin-bottom:12px;opacity:0;animation:heroFadeUp .8s ease .2s forwards">TransCaspian Cargo</h1>
+    <p class="hero-sub" style="font-size:clamp(15px,1.8vw,20px);font-weight:600;max-width:650px;margin-bottom:8px;opacity:0;animation:heroFadeUp .8s ease .5s forwards"><span style="background:linear-gradient(90deg,var(--navy),var(--gold),var(--navy));background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:shimmerText 4s linear infinite">Логистика. Аналитика. Образование.</span></p>
+    <p class="hero-sub" style="font-size:clamp(13px,1.4vw,16px);font-weight:400;color:var(--text-light);max-width:500px;opacity:0;animation:heroFadeUp .8s ease .8s forwards">Евразийская платформа нового поколения</p>
+    <div class="hero-badges">
+      <div class="hero-badge"><span>ТМТМ</span></div>
+      <div class="hero-badge"><span>BRI</span></div>
+      <div class="hero-badge"><span>Евразия</span></div>
+    </div>
+    <div class="hero-btns">
+      <button class="btn-gold" onclick="location.href='corridor.html'">ИССЛЕДОВАТЬ МАРШРУТ</button>
+      <button class="btn-outline" onclick="location.href='analytics.html'">АНАЛИТИКА</button>
+      <button class="btn-outline" onclick="location.href='solutions.html'">РЕШЕНИЯ ДЛЯ БИЗНЕСА</button>
+    </div>
+  </div>
+
+  <!-- Side columns -->
+  <div class="hero-sides">
+    <div class="side-left">
+      <div class="side-label">Наша платформа</div>
+      <h3>Расширьте<br>свои горизонты</h3>
+      <p>Стратегический центр управления цепями поставок в Центральной Азии</p>
+      <a href="about.html" class="side-link">Узнать больше →</a>
+    </div>
+    <div></div>
+    <div class="side-right">
+      <div class="side-label">Средний коридор 2024</div>
+      <div class="stat-item"><div class="stat-val">4.5<small>млн т</small></div><div class="stat-label">грузов через<br>ТМТМ</div></div>
+      <div class="stat-divider"></div>
+      <div class="stat-item"><div class="stat-val">+62%</div><div class="stat-label">рост за<br>год</div></div>
+      <div class="stat-divider"></div>
+      <div class="stat-item"><div class="stat-val">15<small>дней</small></div><div class="stat-label">Китай →<br>Европа</div></div>
+    </div>
+  </div>
+
+  <div class="hero-bottom"><p>Connecting World via Central Asia</p><p>↓ Scroll</p></div>
+  <div class="globe-wrap"><canvas id="globe"></canvas></div>
+  <div class="hero-fade"></div>
+</section>
+
+<!-- БЛОК: Трансформация мировой логистики -->
+<div class="section" style="padding-top:80px;padding-bottom:40px">
+  <div class="reveal" style="display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start">
+    <div>
+      <div class="section-label">Трансформация мировой логистики</div>
+      <h2 class="section-title">Мировая торговля переживает <span class="gold">структурную трансформацию</span></h2>
+      <p style="color:var(--text-mid);font-size:15px;line-height:1.8">Мировая торговля и логистика переживают структурную трансформацию. Основные факторы:</p>
+      <ul style="list-style:none;margin-top:16px;display:flex;flex-direction:column;gap:10px">
+        <li style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text-mid)"><span style="width:6px;height:6px;border-radius:50%;background:var(--gold);flex-shrink:0"></span>Геополитика и санкционные ограничения</li>
+        <li style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text-mid)"><span style="width:6px;height:6px;border-radius:50%;background:var(--gold);flex-shrink:0"></span>Перестройка торговых маршрутов</li>
+        <li style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text-mid)"><span style="width:6px;height:6px;border-radius:50%;background:var(--gold);flex-shrink:0"></span>Рост транзита между Европой и Азией</li>
+        <li style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text-mid)"><span style="width:6px;height:6px;border-radius:50%;background:var(--gold);flex-shrink:0"></span>Цифровизация цепей поставок</li>
+      </ul>
+    </div>
+    <div>
+      <div class="section-label">Роль TransCaspian Cargo</div>
+      <h2 class="section-title" style="font-size:clamp(20px,2.5vw,28px)">Платформа, которая <span class="gold">соединяет</span></h2>
+      <p style="color:var(--text-mid);font-size:15px;line-height:1.8;margin-bottom:16px">TransCaspian Cargo — это платформа, которая соединяет бизнес, экспертов, аналитические знания и отраслевые проекты.</p>
+      <p style="color:var(--text-mid);font-size:14px;line-height:1.7;margin-bottom:20px">Цель платформы — помогать компаниям принимать более сильные стратегические решения в логистике.</p>
+      <!-- Сертификаты (кликабельные) -->
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div onclick="document.getElementById('certPopup1').style.display='flex'" style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:rgba(198,164,109,.04);border:1px solid rgba(198,164,109,.12);border-radius:10px;cursor:pointer;transition:all .3s" onmouseover="this.style.borderColor='var(--gold)';this.style.background='rgba(198,164,109,.08)'" onmouseout="this.style.borderColor='rgba(198,164,109,.12)';this.style.background='rgba(198,164,109,.04)'">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5" style="flex-shrink:0"><path d="M12 15l-2 5 2-1 2 1-2-5z"/><circle cx="12" cy="9" r="6"/><path d="M9 9l2 2 4-4"/></svg>
+          <div style="flex:1">
+            <div style="font-size:12px;font-weight:700;color:var(--text)">Патент РК №11718</div>
+            <div style="font-size:10px;color:var(--text-light)">На полезную модель · LMS система</div>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-light)" stroke-width="2" style="flex-shrink:0"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+        </div>
+        <div onclick="document.getElementById('certPopup2').style.display='flex'" style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:rgba(198,164,109,.04);border:1px solid rgba(198,164,109,.12);border-radius:10px;cursor:pointer;transition:all .3s" onmouseover="this.style.borderColor='var(--gold)';this.style.background='rgba(198,164,109,.08)'" onmouseout="this.style.borderColor='rgba(198,164,109,.12)';this.style.background='rgba(198,164,109,.04)'">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5" style="flex-shrink:0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <div style="flex:1">
+            <div style="font-size:12px;font-weight:700;color:var(--text)">Аккредитация CAAAE</div>
+            <div style="font-size:10px;color:var(--text-light)">Сертификат №25/26KA0006 · 2025-2028</div>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-light)" stroke-width="2" style="flex-shrink:0"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- БЛОК: Новости и исследования (LIVE) -->
+<style>
+.live-dot-index{display:inline-block;width:8px;height:8px;background:#E53935;border-radius:50%;margin-right:6px;animation:livePulseIdx 1.5s infinite}
+@keyframes livePulseIdx{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(229,57,53,.6)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(229,57,53,0)}}
+</style>
+<div style="background:var(--bg-alt);padding:60px 24px">
+  <div style="max-width:1200px;margin:0 auto">
+    <div class="reveal" style="margin-bottom:36px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div class="section-label"><span class="live-dot-index"></span> Новости и исследования</div>
+        <h2 class="section-title" style="margin-bottom:0">Актуальная <span class="gold">повестка</span> <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(229,57,53,.08);border:1px solid rgba(229,57,53,.2);border-radius:20px;padding:4px 14px;font-size:12px;font-weight:700;color:#E53935;vertical-align:middle;animation:livePulseIdx 1.5s infinite">24/7 LIVE</span></h2>
+      </div>
+      <a href="live-data.html" style="font-size:13px;font-weight:600;color:var(--gold);white-space:nowrap">Все данные в реальном времени &rarr;</a>
+    </div>
+    <div id="indexNewsFeed" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px">
+      <!-- Static fallback cards — replaced by JS if API works -->
+      <div class="func-card reveal-scale" style="padding:24px">
+        <div style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Исследование</div>
+        <h3 style="font-size:14px;margin-bottom:8px">Транскаспийский маршрут: 4.5 млн тонн и пятикратный рост</h3>
+        <p style="font-size:12px;color:var(--text-light);line-height:1.5;margin-bottom:10px">Анализ инфраструктурного разрыва EUR 18.5 млрд и прогнозы до 2030</p>
+        <span style="font-size:10px;color:var(--text-light)">15 марта 2026</span>
+      </div>
+      <div class="func-card reveal-scale" style="padding:24px">
+        <div style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Аналитика</div>
+        <h3 style="font-size:14px;margin-bottom:8px">Санкции и перемаршрутизация: новая карта Евразии</h3>
+        <p style="font-size:12px;color:var(--text-light);line-height:1.5;margin-bottom:10px">Суэц -90%, ставки +80%. Как кризис меняет глобальные маршруты</p>
+        <span style="font-size:10px;color:var(--text-light)">8 марта 2026</span>
+      </div>
+      <div class="func-card reveal-scale" style="padding:24px">
+        <div style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Обзор</div>
+        <h3 style="font-size:14px;margin-bottom:8px">Казахстан: 36.9 млн тонн транзита и амбиции хаба</h3>
+        <p style="font-size:12px;color:var(--text-light);line-height:1.5;margin-bottom:10px">Хоргос обрабатывает 372K TEU. Цель к 2030: 74 млн тонн</p>
+        <span style="font-size:10px;color:var(--text-light)">1 марта 2026</span>
+      </div>
+      <div class="func-card reveal-scale" style="padding:24px">
+        <div style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Новость</div>
+        <h3 style="font-size:14px;margin-bottom:8px">BRI 2025: рекордные $128 млрд контрактов</h3>
+        <p style="font-size:12px;color:var(--text-light);line-height:1.5;margin-bottom:10px">Рост 81%. EV-батареи и водород — новые приоритеты</p>
+        <span style="font-size:10px;color:var(--text-light)">28 февраля 2026</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- БЛОК: 4 направления — Фото-карточки -->
+<style>
+.dir-card{position:relative;border-radius:20px;overflow:hidden;height:320px;cursor:pointer;transition:all .5s}
+.dir-card:hover{transform:translateY(-6px);box-shadow:0 16px 48px rgba(0,0,0,.12)}
+.dir-card img{width:100%;height:100%;object-fit:cover;transition:transform .6s;filter:brightness(.45)}
+.dir-card:hover img{transform:scale(1.05);filter:brightness(.35)}
+.dir-overlay{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:28px;z-index:2}
+.dir-overlay::before{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.8) 0%,rgba(0,0,0,.1) 60%,transparent 100%);z-index:-1}
+.dir-num{position:absolute;top:20px;right:24px;font-size:48px;font-weight:900;color:rgba(255,255,255,.06);line-height:1}
+.dir-metric{display:inline-flex;align-items:center;gap:6px;background:rgba(198,164,109,.15);border:1px solid rgba(198,164,109,.25);border-radius:20px;padding:5px 14px;margin-bottom:14px;width:fit-content}
+.dir-metric span{font-size:18px;font-weight:900;color:var(--gold-light)}
+.dir-metric small{font-size:10px;color:rgba(255,255,255,.5)}
+.dir-overlay h3{font-size:18px;font-weight:800;color:#fff;margin-bottom:8px;line-height:1.25}
+.dir-overlay p{font-size:13px;color:rgba(255,255,255,.55);line-height:1.5}
+.dir-overlay .dir-link{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--gold-light);margin-top:12px;opacity:0;transform:translateY(8px);transition:all .3s}
+.dir-card:hover .dir-link{opacity:1;transform:translateY(0)}
+</style>
+<div class="section" style="padding-top:40px;padding-bottom:80px">
+  <div class="reveal" style="text-align:center;margin-bottom:48px">
+    <div class="section-label" style="justify-content:center">Основные направления деятельности</div>
+    <h2 class="section-title">Четыре ключевых <span class="gold">направления</span></h2>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px">
+
+    <div class="dir-card reveal-scale">
+      <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=500&h=700&fit=crop" alt="Аналитика">
+      <div class="dir-num">01</div>
+      <div class="dir-overlay">
+        <div class="dir-metric"><span>8+</span><small>отчётов</small></div>
+        <h3>Аналитика и исследования</h3>
+        <p>Исследования логистики Евразии, санкционных рисков и новых торговых маршрутов</p>
+        <a href="analytics.html" class="dir-link">Подробнее <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+      </div>
+    </div>
+
+    <div class="dir-card reveal-scale">
+      <img src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=500&h=700&fit=crop" alt="Решения">
+      <div class="dir-num">02</div>
+      <div class="dir-overlay">
+        <div class="dir-metric"><span>5</span><small>услуг</small></div>
+        <h3>Решения для бизнеса</h3>
+        <p>Стратегические сессии, анализ цепей поставок и навигация логистических рисков</p>
+        <a href="solutions.html" class="dir-link">Подробнее <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+      </div>
+    </div>
+
+    <div class="dir-card reveal-scale">
+      <img src="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=500&h=700&fit=crop" alt="Образование">
+      <div class="dir-num">03</div>
+      <div class="dir-overlay">
+        <div class="dir-metric"><span>200+</span><small>выпускников</small></div>
+        <h3>Развитие компетенций</h3>
+        <p>Курсы, практикумы и программы повышения квалификации для специалистов отрасли</p>
+        <a href="education.html" class="dir-link">Подробнее <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+      </div>
+    </div>
+
+    <div class="dir-card reveal-scale">
+      <img src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=500&h=700&fit=crop" alt="Проекты">
+      <div class="dir-num">04</div>
+      <div class="dir-overlay">
+        <div class="dir-metric"><span>4</span><small>проекта</small></div>
+        <h3>Отраслевые проекты</h3>
+        <p>Международные инициативы и партнёрства в сфере логистики</p>
+        <a href="projects.html" class="dir-link">Подробнее <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="stats-bar">
+  <div class="stats-grid">
+    <div class="stat-box reveal-scale">
+      <div class="stat-num" data-count="4.5">0</div>
+      <div class="stat-desc">Грузов через Средний коридор в 2024</div>
+    </div>
+    <div class="stat-box reveal-scale">
+      <div class="stat-num">5×</div>
+      <div class="stat-desc">Рост грузопотока ТМТМ за 7 лет</div>
+    </div>
+    <div class="stat-box reveal-scale">
+      <div class="stat-num" data-count="5">0</div>
+      <div class="stat-desc">Потоков обучения завершено</div>
+    </div>
+    <div class="stat-box reveal-scale">
+      <div class="stat-num" data-count="200">0</div>
+      <div class="stat-desc">Выпускников программ TCC</div>
+    </div>
+  </div>
+</div>
+<!-- Counter animation -->
+<script>
+(function(){
+  const counters = document.querySelectorAll('.stat-num[data-count]');
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const el = entry.target;
+      const target = parseFloat(el.dataset.count);
+      const isFloat = target % 1 !== 0;
+      const suffix = isFloat ? '<small>млн т</small>' : (target >= 200 ? '+' : '');
+      let current = 0;
+      const step = target / 40;
+      const timer = setInterval(() => {
+        current += step;
+        if (current >= target) { current = target; clearInterval(timer); }
+        el.innerHTML = (isFloat ? current.toFixed(1) : Math.floor(current)) + suffix;
+      }, 40);
+      obs.unobserve(el);
+    });
+  }, { threshold: 0.5 });
+  counters.forEach(c => obs.observe(c));
+})();
+</script>
+
+<!-- БЛОК: Последние исследования -->
+<div class="section">
+  <div class="reveal" style="text-align:center;margin-bottom:48px">
+    <div class="section-label" style="justify-content:center">Последние исследования</div>
+    <h2 class="section-title">Экспертные <span class="gold">материалы</span></h2>
+  </div>
+  <div class="preview-grid">
+    <div class="preview-card reveal-scale">
+      <div class="tag">Исследование</div>
+      <h3>Обзор логистики Евразии</h3>
+      <p>Контейнерный рынок, тренды и ключевые изменения 2025-2026. Рост Среднего коридора на 62%.</p>
+      <a href="analytics.html" class="link">Читать <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+    </div>
+    <div class="preview-card reveal-scale">
+      <div class="tag">Аналитика</div>
+      <h3>Анализ санкционных рисков в международных перевозках</h3>
+      <p>Трафик через Суэц сократился на 90%. Ставки Шанхай-Роттердам выросли на 80%.</p>
+      <a href="analytics.html" class="link">Читать <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+    </div>
+    <div class="preview-card reveal-scale">
+      <div class="tag">Обзор</div>
+      <h3>Перспективы развития Среднего коридора</h3>
+      <p>ТМТМ достиг 4.5 млн тонн. Инфраструктурный разрыв EUR 18.5 млрд. Прогнозы до 2030.</p>
+      <a href="analytics.html" class="link">Читать <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+    </div>
+  </div>
+</div>
+
+<!-- БЛОК: TCC HUB — Платформа -->
+<div style="background:var(--navy);padding:80px 24px;position:relative;overflow:hidden">
+  <!-- Subtle grid pattern -->
+  <div style="position:absolute;inset:0;opacity:.03;background:linear-gradient(rgba(255,255,255,.3) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.3) 1px,transparent 1px);background-size:60px 60px"></div>
+  <div style="max-width:1200px;margin:0 auto;position:relative;z-index:2">
+    <div style="display:grid;grid-template-columns:1fr 1.1fr;gap:60px;align-items:center">
+      <!-- Текст -->
+      <div class="reveal-left">
+        <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(198,164,109,.1);border:1px solid rgba(198,164,109,.2);border-radius:20px;padding:5px 14px;margin-bottom:20px">
+          <span style="width:8px;height:8px;border-radius:50%;background:#22c55e"></span>
+          <span style="font-size:11px;font-weight:700;color:var(--gold-light);text-transform:uppercase;letter-spacing:.08em">Платформа работает</span>
+        </div>
+        <h2 style="font-size:clamp(28px,4vw,42px);font-weight:800;color:#fff;line-height:1.15;margin-bottom:20px">TCC HUB —<br>образовательная<br><span style="color:var(--gold-light)">платформа</span></h2>
+        <p style="font-size:15px;color:rgba(255,255,255,.55);line-height:1.8;margin-bottom:24px">Управленческая цифровая среда, разработанная с нуля для проектирования, анализа и обучения в сфере логистики и supply chain.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:28px">
+          <div style="text-align:center">
+            <div style="font-size:32px;font-weight:900;color:var(--gold-light)">9</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Курсов</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:32px;font-weight:900;color:var(--gold-light)">200+</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Выпускников</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:32px;font-weight:900;color:var(--gold-light)">5</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Потоков</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <a href="https://tcchub.kz" target="_blank" style="display:inline-flex;align-items:center;gap:8px;background:var(--gold);color:#fff;padding:14px 28px;border-radius:28px;font-weight:700;font-size:13px;transition:all .3s;text-decoration:none">ПЕРЕЙТИ НА ПЛАТФОРМУ <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg></a>
+          <a href="education.html" style="display:inline-flex;align-items:center;gap:6px;color:rgba(255,255,255,.5);padding:14px 20px;font-size:13px;font-weight:600;text-decoration:none;transition:color .3s" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.5)'">О курсах →</a>
+        </div>
+      </div>
+      <!-- Browser mockup -->
+      <div class="reveal-right">
+        <div style="background:#111;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,.08);box-shadow:0 24px 64px rgba(0,0,0,.3)">
+          <!-- Browser bar -->
+          <div style="background:#1a1a1a;padding:12px 18px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.05)">
+            <div style="width:10px;height:10px;border-radius:50%;background:#ff5f57"></div>
+            <div style="width:10px;height:10px;border-radius:50%;background:#ffbd2e"></div>
+            <div style="width:10px;height:10px;border-radius:50%;background:#28c840"></div>
+            <div style="flex:1;text-align:center;font-size:11px;color:rgba(255,255,255,.25);font-family:monospace">tcchub.kz</div>
+          </div>
+          <!-- Content -->
+          <div style="padding:24px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+              <img src="https://optim.tildacdn.pro/tild6637-3765-4438-b135-366537363233/-/resize/176x/-/format/webp/noroot.png.webp" alt="TCC" style="height:20px">
+              <span style="font-size:12px;font-weight:700;color:var(--gold-light)">TCC HUB</span>
+              <span style="margin-left:auto;font-size:9px;color:rgba(255,255,255,.2)">Личный кабинет</span>
+            </div>
+            <!-- Курс: Логистика с нуля -->
+            <div style="margin-bottom:12px">
+              <div style="font-size:10px;color:var(--gold-light);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Курс «Логистика с нуля» · 7 модулей</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+                <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(255,255,255,.03);border-radius:6px;border:1px solid rgba(255,255,255,.04)">
+                  <span style="font-size:10px;font-weight:800;color:var(--gold-light);min-width:14px">01</span>
+                  <span style="font-size:11px;color:rgba(255,255,255,.55)">Введение в логистику</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(255,255,255,.03);border-radius:6px;border:1px solid rgba(255,255,255,.04)">
+                  <span style="font-size:10px;font-weight:800;color:var(--gold-light);min-width:14px">02</span>
+                  <span style="font-size:11px;color:rgba(255,255,255,.55)">Морская логистика</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(255,255,255,.03);border-radius:6px;border:1px solid rgba(255,255,255,.04)">
+                  <span style="font-size:10px;font-weight:800;color:var(--gold-light);min-width:14px">03</span>
+                  <span style="font-size:11px;color:rgba(255,255,255,.55)">Сухопутная логистика</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(255,255,255,.03);border-radius:6px;border:1px solid rgba(255,255,255,.04)">
+                  <span style="font-size:10px;font-weight:800;color:var(--gold-light);min-width:14px">04</span>
+                  <span style="font-size:11px;color:rgba(255,255,255,.55)">Incoterms и договоры</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(255,255,255,.03);border-radius:6px;border:1px solid rgba(255,255,255,.04)">
+                  <span style="font-size:10px;font-weight:800;color:var(--gold-light);min-width:14px">05</span>
+                  <span style="font-size:11px;color:rgba(255,255,255,.55)">Склады и запасы</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(255,255,255,.03);border-radius:6px;border:1px solid rgba(255,255,255,.04)">
+                  <span style="font-size:10px;font-weight:800;color:var(--gold-light);min-width:14px">06</span>
+                  <span style="font-size:11px;color:rgba(255,255,255,.55)">Авиационная логистика</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(198,164,109,.06);border-radius:6px;border:1px solid rgba(198,164,109,.15);grid-column:span 2">
+                  <span style="font-size:10px;font-weight:800;color:var(--gold-light);min-width:14px">07</span>
+                  <span style="font-size:11px;color:rgba(255,255,255,.55)">Карьера в логистике + бонус: шаблоны, чек-листы, чат с экспертами</span>
+                </div>
+              </div>
+            </div>
+            <!-- Курс: Логистика для продвинутых -->
+            <div style="padding:10px 14px;background:rgba(255,255,255,.03);border-radius:8px;border:1px solid rgba(255,255,255,.04);margin-bottom:12px">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div>
+                  <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.6)">Логистика для продвинутых <span style="color:var(--gold-light)">«911»</span></div>
+                  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:2px">Для опытных специалистов · 4 потока завершено</div>
+                </div>
+                <div style="font-size:9px;color:rgba(255,255,255,.2);background:rgba(255,255,255,.04);padding:3px 8px;border-radius:4px">PRO</div>
+              </div>
+            </div>
+            <!-- Потоки -->
+            <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+              <div style="font-size:9px;color:rgba(255,255,255,.3);padding:4px 10px;border:1px solid rgba(255,255,255,.06);border-radius:12px">1 поток ✓</div>
+              <div style="font-size:9px;color:rgba(255,255,255,.3);padding:4px 10px;border:1px solid rgba(255,255,255,.06);border-radius:12px">2 поток ✓</div>
+              <div style="font-size:9px;color:rgba(255,255,255,.3);padding:4px 10px;border:1px solid rgba(255,255,255,.06);border-radius:12px">3 поток ✓</div>
+              <div style="font-size:9px;color:rgba(255,255,255,.3);padding:4px 10px;border:1px solid rgba(255,255,255,.06);border-radius:12px">4 поток ✓</div>
+              <div style="font-size:9px;color:var(--gold-light);padding:4px 10px;border:1px solid rgba(198,164,109,.2);border-radius:12px;background:rgba(198,164,109,.06)">5 поток · идёт</div>
+            </div>
+            <!-- Format badge -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:rgba(198,164,109,.06);border:1px solid rgba(198,164,109,.15);border-radius:10px">
+              <div style="display:flex;align-items:center;gap:16px">
+                <div style="text-align:center"><div style="font-size:16px;font-weight:800;color:var(--gold-light)">24</div><div style="font-size:8px;color:rgba(255,255,255,.3)">часа</div></div>
+                <div style="width:1px;height:24px;background:rgba(255,255,255,.08)"></div>
+                <div style="text-align:center"><div style="font-size:16px;font-weight:800;color:var(--gold-light)">7</div><div style="font-size:8px;color:rgba(255,255,255,.3)">модулей</div></div>
+                <div style="width:1px;height:24px;background:rgba(255,255,255,.08)"></div>
+                <div style="text-align:center"><div style="font-size:16px;font-weight:800;color:var(--gold-light)">Online</div><div style="font-size:8px;color:rgba(255,255,255,.3)">формат</div></div>
+              </div>
+              <div style="font-size:10px;color:var(--gold-light);background:rgba(198,164,109,.1);padding:6px 12px;border-radius:6px;font-weight:600">Сертификат</div>
+            </div>
+          </div>
+        </div>
+        <!-- Сертификаты и аккредитации -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px">
+          <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px 16px;display:flex;align-items:start;gap:12px">
+            <div style="width:36px;height:36px;border-radius:8px;background:rgba(198,164,109,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold-light)" stroke-width="1.5"><path d="M12 15l-2 5 2-1 2 1-2-5z"/><circle cx="12" cy="9" r="6"/><path d="M9 9l2 2 4-4"/></svg>
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.7)">Авторское право РК</div>
+              <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:2px">Свидетельство №57738 от 6 мая 2025 года</div>
+            </div>
+          </div>
+          <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px 16px;display:flex;align-items:start;gap:12px">
+            <div style="width:36px;height:36px;border-radius:8px;background:rgba(198,164,109,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold-light)" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.7)">Аккредитация CAAAE</div>
+              <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:2px">Сертификат №25/26KA0006 · 2025-2028</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- БЛОК: Команда экспертов -->
+<div class="section" style="padding-bottom:40px">
+  <div class="reveal" style="text-align:center;margin-bottom:48px">
+    <div class="section-label" style="justify-content:center">Команда экспертов</div>
+    <h2 class="section-title">Наши <span class="gold">эксперты</span></h2>
+    <p class="section-desc" style="margin-left:auto;margin-right:auto;text-align:center">Практики из индустрии с суммарным опытом более 77 лет. Вы учитесь у тех, кто делает.</p>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:24px">
+    <!-- Айслу Тайсаринова -->
+    <div class="func-card reveal-scale" style="padding:0;overflow:hidden;text-align:center">
+      <div style="height:240px;overflow:hidden;background:linear-gradient(180deg,#e8e8e8,#d4d4d4)">
+        <img src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400&h=500&fit=crop&crop=face&facepad=2" alt="Айслу Тайсаринова" style="width:100%;height:100%;object-fit:cover;object-position:center top;filter:grayscale(20%)">
+      </div>
+      <div style="padding:24px 20px">
+        <h3 style="font-size:16px;font-weight:700;margin-bottom:4px">Айслу Тайсаринова</h3>
+        <p style="font-size:12px;color:var(--gold);font-weight:600;margin-bottom:10px">Логистика и транспортное планирование</p>
+        <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(198,164,109,.08);border:1px solid rgba(198,164,109,.15);border-radius:20px;padding:4px 14px;font-size:11px;font-weight:700;color:var(--gold)">23 года опыта</div>
+        <p style="font-size:12px;color:var(--text-light);line-height:1.5;margin-top:12px">Эксперт по транспортному планированию и оптимизации логистических процессов</p>
+      </div>
+    </div>
+    <!-- Рустам Хуснутдинов -->
+    <div class="func-card reveal-scale" style="padding:0;overflow:hidden;text-align:center">
+      <div style="height:240px;overflow:hidden;background:linear-gradient(180deg,#e8e8e8,#d4d4d4)">
+        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=500&fit=crop&crop=face&facepad=2" alt="Рустам Хуснутдинов" style="width:100%;height:100%;object-fit:cover;object-position:center top;filter:grayscale(20%)">
+      </div>
+      <div style="padding:24px 20px">
+        <h3 style="font-size:16px;font-weight:700;margin-bottom:4px">Рустам Хуснутдинов</h3>
+        <p style="font-size:12px;color:var(--gold);font-weight:600;margin-bottom:10px">Проектная логистика и снабжение</p>
+        <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(198,164,109,.08);border:1px solid rgba(198,164,109,.15);border-radius:20px;padding:4px 14px;font-size:11px;font-weight:700;color:var(--gold)">25 лет опыта</div>
+        <p style="font-size:12px;color:var(--text-light);line-height:1.5;margin-top:12px">Специалист по проектной логистике крупных промышленных объектов</p>
+      </div>
+    </div>
+    <!-- Оксана Сорокина -->
+    <div class="func-card reveal-scale" style="padding:0;overflow:hidden;text-align:center">
+      <div style="height:240px;overflow:hidden;background:linear-gradient(180deg,#e8e8e8,#d4d4d4)">
+        <img src="https://images.unsplash.com/photo-1598550874175-4d0ef436c909?w=400&h=500&fit=crop&crop=face&facepad=2" alt="Оксана Сорокина" style="width:100%;height:100%;object-fit:cover;object-position:center top;filter:grayscale(20%)">
+      </div>
+      <div style="padding:24px 20px">
+        <h3 style="font-size:16px;font-weight:700;margin-bottom:4px">Оксана Сорокина</h3>
+        <p style="font-size:12px;color:var(--gold);font-weight:600;margin-bottom:10px">Международная и авиационная логистика</p>
+        <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(198,164,109,.08);border:1px solid rgba(198,164,109,.15);border-radius:20px;padding:4px 14px;font-size:11px;font-weight:700;color:var(--gold)">22 года опыта</div>
+        <p style="font-size:12px;color:var(--text-light);line-height:1.5;margin-top:12px">Эксперт в авиационных перевозках и международной логистике</p>
+      </div>
+    </div>
+    <!-- Наргиза Турарбек -->
+    <div class="func-card reveal-scale" style="padding:0;overflow:hidden;text-align:center">
+      <div style="height:240px;overflow:hidden;background:linear-gradient(180deg,#e8e8e8,#d4d4d4)">
+        <img src="https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&h=500&fit=crop&crop=face&facepad=2" alt="Наргиза Турарбек" style="width:100%;height:100%;object-fit:cover;object-position:center top;filter:grayscale(20%)">
+      </div>
+      <div style="padding:24px 20px">
+        <h3 style="font-size:16px;font-weight:700;margin-bottom:4px">Наргиза Турарбек</h3>
+        <p style="font-size:12px;color:var(--gold);font-weight:600;margin-bottom:10px">Рекрутинг и HR в логистике</p>
+        <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(198,164,109,.08);border:1px solid rgba(198,164,109,.15);border-radius:20px;padding:4px 14px;font-size:11px;font-weight:700;color:var(--gold)">7 лет опыта</div>
+        <p style="font-size:12px;color:var(--text-light);line-height:1.5;margin-top:12px">Специалист по подбору кадров и карьерному развитию в сфере логистики</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- БЛОК: Партнёры -->
+<div class="section" style="background:var(--bg-alt);padding:60px 24px">
+  <div style="max-width:1200px;margin:0 auto">
+    <div class="reveal" style="text-align:center;margin-bottom:32px">
+      <div class="section-label" style="justify-content:center">Партнёры</div>
+      <h2 class="section-title">Экосистема <span class="gold">партнёрств</span></h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
+      <div class="func-card reveal-scale" style="text-align:center;padding:20px"><span style="font-size:14px;font-weight:700;color:var(--text-mid)">CILT Kazakhstan</span></div>
+      <div class="func-card reveal-scale" style="text-align:center;padding:20px"><span style="font-size:14px;font-weight:700;color:var(--text-mid)">ALT University</span></div>
+      <div class="func-card reveal-scale" style="text-align:center;padding:20px"><span style="font-size:14px;font-weight:700;color:var(--text-mid)">TITR Association</span></div>
+      <div class="func-card reveal-scale" style="text-align:center;padding:20px"><span style="font-size:14px;font-weight:700;color:var(--text-mid)">EBRD</span></div>
+    </div>
+    <div style="text-align:center"><a href="partners.html" style="font-size:13px;font-weight:600;color:var(--gold)">Все партнёры →</a></div>
+  </div>
+</div>
+
+<div class="cta-banner">
+  <h2>Стать партнёром TransCaspian Cargo</h2>
+  <p>Присоединяйтесь к экосистеме отраслевой экспертизы в логистике Евразии</p>
+  <button class="btn-white" onclick="location.href='contacts.html'">НАЧАТЬ СОТРУДНИЧЕСТВО</button>
+</div>
+
+<footer>
+  <div class="footer-inner reveal">
+    <div class="footer-brand">
+      <img src="https://optim.tildacdn.pro/tild6637-3765-4438-b135-366537363233/-/resize/176x/-/format/webp/noroot.png.webp" alt="TCC">
+      <p>Интеллектуальная платформа отраслевой экспертизы в логистике и цепях поставок Евразии</p>
+      <div class="footer-socials">
+        <a href="https://wa.link/wrcagw" title="WhatsApp"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.11.547 4.093 1.504 5.818L0 24l6.335-1.632A11.955 11.955 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.82a9.796 9.796 0 0 1-5.09-1.418l-.365-.217-3.781.975.999-3.648-.238-.379A9.798 9.798 0 0 1 2.18 12c0-5.414 4.406-9.82 9.82-9.82 5.414 0 9.82 4.406 9.82 9.82 0 5.414-4.406 9.82-9.82 9.82z"/></svg></a>
+        <a href="https://www.linkedin.com/company/tccargo/" title="LinkedIn"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg></a>
+        <a href="https://www.instagram.com/transcaspian_cargo" title="Instagram"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg></a>
+        <a href="https://www.youtube.com/@TCCHUB-25" title="YouTube"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
+      </div>
+    </div>
+    <div class="footer-col"><h4>Платформа</h4><a href="about.html">О платформе</a><a href="analytics.html">Аналитика</a><a href="solutions.html">Решения для бизнеса</a><a href="education.html">Образование</a></div>
+    <div class="footer-col"><h4>Разделы</h4><a href="projects.html">Отраслевые проекты</a><a href="media.html">Медиа</a><a href="partners.html">Партнёры</a><a href="contacts.html">Контакты</a></div>
+    <div class="footer-col"><h4>Контакты</h4><a href="https://go.2gis.com/RIQGo">Атырау, пр. Студенческий 52</a><a href="tel:+77710544898">+7 771 054 4898</a><a href="mailto:info@tc-cargo.kz">info@tc-cargo.kz</a><span style="font-size:11px;color:rgba(255,255,255,.2);display:block;margin-top:4px">09:00 - 18:00 ПН-ПТ</span></div>
+  </div>
+  <div class="footer-copy">&copy; 2025 TransCaspian Cargo. Все права защищены. Платформа отраслевой экспертизы в логистике Евразии.</div>
+</footer>
+
+<!-- Certificate Popups -->
+<style>
+.cert-popup{display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:24px}
+.cert-popup-box{background:#fff;border-radius:20px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.2);position:relative}
+.cert-popup-close{position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.04);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s;z-index:2}
+.cert-popup-close:hover{background:rgba(0,0,0,.08)}
+.cert-popup-header{background:linear-gradient(135deg,var(--navy),#0F1D35);padding:32px;border-radius:20px 20px 0 0;text-align:center}
+.cert-popup-body{padding:32px}
+</style>
+
+<div class="cert-popup" id="certPopup1" onclick="if(event.target===this)this.style.display='none'">
+  <div class="cert-popup-box">
+    <button class="cert-popup-close" onclick="this.parentElement.parentElement.style.display='none'">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+    <div class="cert-popup-header">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--gold-light)" stroke-width="1.2" style="margin-bottom:12px"><path d="M12 15l-2 5 2-1 2 1-2-5z"/><circle cx="12" cy="9" r="6"/><path d="M9 9l2 2 4-4"/></svg>
+      <h3 style="color:#fff;font-size:20px;font-weight:800">Патент Республики Казахстан</h3>
+      <p style="color:rgba(255,255,255,.5);font-size:13px;margin-top:6px">На полезную модель · Learning Management Information System</p>
+    </div>
+    <div class="cert-popup-body">
+      <div style="text-align:center;padding:12px;background:var(--bg-alt);border-radius:12px;margin-bottom:24px">
+        <img src="WhatsApp Image 2026-03-15 at 16.09.54.jpeg" style="max-width:100%;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.08)" alt="Патент РК №11718">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div style="font-size:10px;color:var(--text-light);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Номер патента</div>
+          <div style="font-size:15px;font-weight:700;color:var(--text)">№11718</div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text-light);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Дата регистрации</div>
+          <div style="font-size:15px;font-weight:700;color:var(--text)">07.11.2025</div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text-light);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Объект</div>
+          <div style="font-size:13px;color:var(--text-mid)">Информационная система управления обучением (Learning Management Information System)</div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text-light);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Патентообладатель</div>
+          <div style="font-size:13px;color:var(--text-mid)">ТОО «TransCaspian Cargo» · Бисалиев Рустем Сагинович</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="cert-popup" id="certPopup2" onclick="if(event.target===this)this.style.display='none'">
+  <div class="cert-popup-box">
+    <button class="cert-popup-close" onclick="this.parentElement.parentElement.style.display='none'">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+    <div class="cert-popup-header">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--gold-light)" stroke-width="1.2" style="margin-bottom:12px"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      <h3 style="color:#fff;font-size:20px;font-weight:800">Международная аккредитация</h3>
+      <p style="color:rgba(255,255,255,.5);font-size:13px;margin-top:6px">CAAAE — Central Asia Association for Accreditation in Education</p>
+    </div>
+    <div class="cert-popup-body">
+      <div style="text-align:center;padding:12px;background:var(--bg-alt);border-radius:12px;margin-bottom:24px">
+        <img src="WhatsApp Image 2026-03-15 at 16.11.16.jpeg" style="max-width:100%;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.08)" alt="Сертификат CAAAE №25/26KA0006">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div style="font-size:10px;color:var(--text-light);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Номер</div>
+          <div style="font-size:15px;font-weight:700;color:var(--text)">№25/26KA0006</div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text-light);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Срок действия</div>
+          <div style="font-size:15px;font-weight:700;color:var(--text)">09.06.2025 — 08.06.2028</div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text-light);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Тип</div>
+          <div style="font-size:13px;color:var(--text-mid)">Институциональная аккредитация</div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text-light);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Организация</div>
+          <div style="font-size:13px;color:var(--text-mid)">Central Asian Association for Accreditation of Education</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+// ======= INTERACTIVE D3 GLOBE =======
+(function(){
+const canvas=document.getElementById('globe');
+if(!canvas)return;
+const ctx=canvas.getContext('2d');
+const W=900,H=900,R=420;
+const dpr=Math.min(devicePixelRatio||1,2);
+canvas.width=W*dpr;canvas.height=H*dpr;
+canvas.style.width='100%';canvas.style.height='100%';
+ctx.scale(dpr,dpr);
+const cx=W/2,cy=H/2;
+const proj=d3.geoOrthographic().scale(R).translate([cx,cy]).clipAngle(90).rotate([-55,-40]);
+const path=d3.geoPath().projection(proj).context(ctx);
+const grat=d3.geoGraticule().step([15,15]);
+
+const cities=[
+  {n:'Атырау',lo:51.9,la:47.1,t:'hub',info:'TCC Hub · Штаб-квартира'},
+  {n:'Алматы',lo:76.9,la:43.2,t:'corridor',info:'Логистический хаб ЦА'},
+  {n:'Астана',lo:71.4,la:51.1,t:'corridor',info:'Столица · KTZ Express HQ'},
+  {n:'Баку',lo:49.9,la:40.4,t:'port',info:'Порт Алат · 15М тонн'},
+  {n:'Стамбул',lo:29,la:41,t:'corridor',info:'Мост Азия-Европа'},
+  {n:'Шанхай',lo:121.5,la:31.2,t:'origin',info:'Крупнейший порт мира'},
+  {n:'Роттердам',lo:4.5,la:51.9,t:'dest',info:'Крупнейший порт Европы'},
+  {n:'Актау',lo:51.1,la:43.6,t:'port',info:'Каспийский порт · 6М тонн'},
+  {n:'Тбилиси',lo:44.8,la:41.7,t:'corridor',info:'BTK железная дорога'},
+  {n:'Достык',lo:80.4,la:45.5,t:'corridor',info:'Граница КНР-КЗ'},
+  {n:'Урумчи',lo:87.6,la:43.8,t:'corridor',info:'Западный Китай'},
+  {n:'Батуми',lo:41.6,la:41.6,t:'port',info:'Черноморский порт'},
+  {n:'Гамбург',lo:10,la:53.6,t:'dest',info:'Порт Германии'},
+  {n:'Москва',lo:37.6,la:55.8,t:'ctx'},
+  {n:'Дубай',lo:55.3,la:25.2,t:'ctx'},
+  {n:'Пекин',lo:116.4,la:39.9,t:'ctx'},
+  {n:'Ташкент',lo:69.3,la:41.3,t:'ctx'},
+  {n:'Хоргос',lo:80.3,la:44.2,t:'port',info:'Сухой порт · 372К TEU · 1ч обработка'},
+  {n:'Сиань',lo:109,la:34.3,t:'corridor',info:'Стартовый хаб BRI'},
+  {n:'Лондон',lo:-.1,la:51.5,t:'ctx'},
+];
+const corridor=[5,18,10,9,1,2,0,7,3,8,11,4,6]; // main TMTM route
+const routes=[[0,16],[0,13],[0,14],[4,19],[5,15],[0,12],[14,3]]; // secondary
+
+let land=null,dots=[];
+fetch('https://raw.githubusercontent.com/martynafford/natural-earth-geojson/refs/heads/master/110m/physical/ne_110m_land.json')
+.then(r=>r.json()).then(data=>{
+  land=data;
+  const pip=(pt,poly)=>{let[x,y]=pt,ins=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){let[xi,yi]=poly[i],[xj,yj]=poly[j];if(yi>y!==yj>y&&x<((xj-xi)*(y-yi))/(yj-yi)+xi)ins=!ins}return ins};
+  const inF=(pt,f)=>{const g=f.geometry;if(g.type==='Polygon'){if(!pip(pt,g.coordinates[0]))return false;for(let i=1;i<g.coordinates.length;i++)if(pip(pt,g.coordinates[i]))return false;return true}if(g.type==='MultiPolygon'){for(const p of g.coordinates){if(pip(pt,p[0])){let h=false;for(let i=1;i<p.length;i++)if(pip(pt,p[i])){h=true;break}if(!h)return true}}return false}};
+  data.features.forEach(f=>{const[[a,b],[c,d]]=d3.geoBounds(f);for(let lo=a;lo<=c;lo+=2.5)for(let la=b;la<=d;la+=2.5)if(inF([lo,la],f))dots.push([lo,la])});
+});
+
+let t=0,hoveredCity=null;
+const rot=proj.rotate();
+const logo=new Image();logo.crossOrigin='anonymous';let logoOk=false;
+logo.onload=()=>{logoOk=true};
+logo.src='https://optim.tildacdn.pro/tild6637-3765-4438-b135-366537363233/-/resize/176x/-/format/webp/noroot.png.webp';
+
+function render(){
+  t+=.003;
+  if(!drag)rot[0]-=.02;
+  proj.rotate(rot);
+  ctx.clearRect(0,0,W,H);
+  const sc=proj.scale()/R;
+
+  // Atmosphere
+  const ag=ctx.createRadialGradient(cx,cy,R*.9,cx,cy,R*1.12);
+  ag.addColorStop(0,'rgba(198,164,109,0)');ag.addColorStop(.7,'rgba(198,164,109,.02)');ag.addColorStop(1,'rgba(198,164,109,.06)');
+  ctx.fillStyle=ag;ctx.beginPath();ctx.arc(cx,cy,R*1.12,0,Math.PI*2);ctx.fill();
+
+  // Globe body
+  const bg=ctx.createRadialGradient(cx-R*.25,cy-R*.25,0,cx,cy,R);
+  bg.addColorStop(0,'#243B60');bg.addColorStop(.5,'#1B2A4A');bg.addColorStop(1,'#0F1D35');
+  ctx.fillStyle=bg;ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='rgba(198,164,109,.12)';ctx.lineWidth=1.5;ctx.stroke();
+
+  if(!land){requestAnimationFrame(render);return}
+
+  ctx.beginPath();path(grat());ctx.strokeStyle='rgba(255,255,255,.05)';ctx.lineWidth=.4*sc;ctx.stroke();
+  ctx.beginPath();land.features.forEach(f=>path(f));ctx.strokeStyle='rgba(198,164,109,.18)';ctx.lineWidth=.7*sc;ctx.stroke();
+  ctx.beginPath();land.features.forEach(f=>path(f));ctx.fillStyle='rgba(198,164,109,.04)';ctx.fill();
+  dots.forEach(([lo,la])=>{const p=proj([lo,la]);if(p){ctx.beginPath();ctx.arc(p[0],p[1],1*sc,0,Math.PI*2);ctx.fillStyle='rgba(198,164,109,.15)';ctx.fill()}});
+
+  const pts=cities.map(c=>proj([c.lo,c.la]));
+  const vis=cities.map(c=>d3.geoDistance([c.lo,c.la],proj.invert([cx,cy]))<Math.PI/2);
+
+  // Corridor route
+  for(let i=0;i<corridor.length-1;i++){
+    const a=corridor[i],b=corridor[i+1];
+    if(!pts[a]||!pts[b]||!vis[a]||!vis[b])continue;
+    const p1=pts[a],p2=pts[b],dx=p2[0]-p1[0],dy=p2[1]-p1[1];
+    const mx=(p1[0]+p2[0])/2-dy*.12,my=(p1[1]+p2[1])/2+dx*.12;
+    ctx.beginPath();ctx.moveTo(p1[0],p1[1]);ctx.quadraticCurveTo(mx,my,p2[0],p2[1]);
+    ctx.strokeStyle='rgba(198,164,109,.3)';ctx.lineWidth=2.5*sc;ctx.stroke();
+    const tt=((t*.5+i*.07)%1),it=1-tt;
+    ctx.shadowColor='rgba(198,164,109,.7)';ctx.shadowBlur=6;
+    ctx.fillStyle='#C6A46D';ctx.beginPath();
+    ctx.arc(it*it*p1[0]+2*it*tt*mx+tt*tt*p2[0],it*it*p1[1]+2*it*tt*my+tt*tt*p2[1],3*sc,0,Math.PI*2);ctx.fill();
+    ctx.shadowBlur=0;
+  }
+  // Secondary routes
+  routes.forEach(([a,b],ri)=>{
+    if(!pts[a]||!pts[b]||!vis[a]||!vis[b])return;
+    const p1=pts[a],p2=pts[b],dx=p2[0]-p1[0],dy=p2[1]-p1[1];
+    const mx=(p1[0]+p2[0])/2-dy*.15,my=(p1[1]+p2[1])/2+dx*.15;
+    ctx.beginPath();ctx.moveTo(p1[0],p1[1]);ctx.quadraticCurveTo(mx,my,p2[0],p2[1]);
+    ctx.strokeStyle='rgba(198,164,109,.07)';ctx.lineWidth=.5*sc;ctx.stroke();
+  });
+
+  // Cities
+  pts.forEach((p,i)=>{
+    if(!p||!vis[i])return;const c=cities[i];
+    const isHovered=(hoveredCity===i);
+    if(c.t==='hub'){
+      const pulse=(Math.sin(t*5)+1)/2;
+      ctx.strokeStyle=`rgba(198,164,109,${.1+pulse*.15})`;ctx.lineWidth=1*sc;
+      ctx.beginPath();ctx.arc(p[0],p[1],(10+pulse*6)*sc,0,Math.PI*2);ctx.stroke();
+      ctx.shadowColor='rgba(198,164,109,.6)';ctx.shadowBlur=10;
+      ctx.fillStyle='#C6A46D';ctx.beginPath();ctx.arc(p[0],p[1],5*sc,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+      if(logoOk){const lw=45*sc,lh=15*sc,cw=lw+12,ch=lh+8;
+        ctx.fillStyle='rgba(15,29,53,.85)';ctx.beginPath();ctx.roundRect(p[0]-cw/2,p[1]-32*sc,cw,ch,4);ctx.fill();
+        ctx.strokeStyle='rgba(198,164,109,.3)';ctx.lineWidth=.5;ctx.stroke();
+        ctx.drawImage(logo,p[0]-lw/2,p[1]-29*sc,lw,lh)}
+      ctx.fillStyle='rgba(198,164,109,.6)';ctx.font=`600 ${7*sc}px Montserrat`;ctx.textAlign='center';
+      ctx.fillText('Атырау · TCC Hub',p[0],p[1]+9*sc);
+    } else if(c.t!=='ctx'){
+      const isCor=corridor.includes(i);
+      const r=isHovered?(isCor?6:5):(isCor?3.5:2.5);
+      ctx.strokeStyle=isCor?'rgba(198,164,109,.3)':'rgba(198,164,109,.12)';ctx.lineWidth=.5*sc;
+      ctx.beginPath();ctx.arc(p[0],p[1],r*sc,0,Math.PI*2);ctx.stroke();
+      ctx.fillStyle=isCor?'#C6A46D':'rgba(198,164,109,.35)';
+      ctx.beginPath();ctx.arc(p[0],p[1],(isHovered?r*.7:2)*sc,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=isHovered?'#fff':isCor?'rgba(198,164,109,.6)':'rgba(198,164,109,.25)';
+      ctx.font=`${isCor?'600':'400'} ${(isHovered?9:isCor?7:6)*sc}px Montserrat`;
+      ctx.textAlign='center';ctx.fillText(c.n,p[0],p[1]-(isHovered?r+4:6)*sc);
+    } else {
+      ctx.fillStyle='rgba(198,164,109,.1)';ctx.beginPath();ctx.arc(p[0],p[1],1.5*sc,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='rgba(198,164,109,.2)';ctx.font=`400 ${5.5*sc}px Montserrat`;ctx.textAlign='center';
+      ctx.fillText(c.n,p[0],p[1]-4*sc);
+    }
+
+    // Popup on hover
+    if(isHovered && c.info){
+      const pw=160*sc,ph=40*sc;
+      ctx.fillStyle='rgba(255,255,255,.95)';
+      ctx.beginPath();ctx.roundRect(p[0]-pw/2,p[1]+12*sc,pw,ph,6*sc);ctx.fill();
+      ctx.strokeStyle='rgba(198,164,109,.3)';ctx.lineWidth=1;ctx.stroke();
+      ctx.fillStyle='#1B2A4A';ctx.font=`700 ${7.5*sc}px Montserrat`;
+      ctx.fillText(c.n,p[0],p[1]+25*sc);
+      ctx.fillStyle='#777';ctx.font=`400 ${6*sc}px Montserrat`;
+      ctx.fillText(c.info,p[0],p[1]+37*sc);
+    }
+  });
+
+  // Specular
+  const sg=ctx.createRadialGradient(cx-R*.3,cy-R*.3,0,cx-R*.3,cy-R*.3,R*.5);
+  sg.addColorStop(0,'rgba(255,255,255,.04)');sg.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=sg;ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.fill();
+
+  requestAnimationFrame(render);
+}
+
+// Drag to rotate
+let drag=false,sx,sy,sr;
+canvas.addEventListener('mousedown',e=>{drag=true;sx=e.clientX;sy=e.clientY;sr=[...rot];canvas.style.cursor='grabbing'});
+document.addEventListener('mousemove',e=>{
+  if(drag){rot[0]=sr[0]+(e.clientX-sx)*.3;rot[1]=Math.max(-60,Math.min(60,sr[1]-(e.clientY-sy)*.3));proj.rotate(rot);return}
+  // Hover detection
+  const rect=canvas.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)*(W/rect.width);
+  const my=(e.clientY-rect.top)*(H/rect.height);
+  hoveredCity=null;
+  cities.forEach((c,i)=>{
+    if(c.t==='ctx')return;
+    const p=proj([c.lo,c.la]);
+    if(!p)return;
+    const dist=Math.sqrt((p[0]-mx)**2+(p[1]-my)**2);
+    if(dist<15){hoveredCity=i;canvas.style.cursor='pointer'}
+  });
+  if(hoveredCity===null)canvas.style.cursor='grab';
+});
+document.addEventListener('mouseup',()=>{drag=false;canvas.style.cursor='grab'});
+
+// Click → scroll to info or open popup
+canvas.addEventListener('click',e=>{
+  if(hoveredCity!==null){
+    const c=cities[hoveredCity];
+    if(c.t==='hub') window.location.href='about.html';
+  }
+});
+
+canvas.style.cursor='grab';
+requestAnimationFrame(render);
+})();
+// Scroll reveal
+(function(){
+  const els=document.querySelectorAll('.reveal,.reveal-left,.reveal-right,.reveal-scale');
+  const obs=new IntersectionObserver(entries=>{entries.forEach(entry=>{if(entry.isIntersecting){const el=entry.target;const siblings=el.parentElement.querySelectorAll('.reveal,.reveal-left,.reveal-right,.reveal-scale');const idx=[...siblings].indexOf(el);setTimeout(()=>el.classList.add('visible'),idx*120);obs.unobserve(el)}})},{threshold:.12});
+  els.forEach(el=>obs.observe(el));
+})();
+// Nav scroll
+window.addEventListener('scroll',()=>{document.getElementById('nav').classList.toggle('scrolled',window.scrollY>30)});
+// Lang switch
+document.querySelectorAll('.lang-btn').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active')})});
+
+// ==========================================
+// LIVE NEWS FEED FOR INDEX PAGE
+// ==========================================
+(function(){
+  const rssFeeds = [
+    { name: 'RailFreight', url: 'https://www.railfreight.com/feed/' },
+    { name: 'Astana Times', url: 'https://astanatimes.com/feed/' },
+    { name: 'The Diplomat', url: 'https://thediplomat.com/feed/' },
+    { name: 'The Loadstar', url: 'https://theloadstar.com/feed/' },
+    { name: 'gCaptain', url: 'https://gcaptain.com/feed/' },
+    { name: 'Hellenic Shipping', url: 'https://www.hellenicshippingnews.com/feed/' },
+    { name: 'Supply Chain Dive', url: 'https://supplychaindive.com/feeds/news/' },
+    { name: 'Air Cargo News', url: 'https://aircargonews.net/feed/' },
+    { name: 'FreightWaves', url: 'https://www.freightwaves.com/feed' }
+  ];
+
+  async function fetchRSS(feed) {
+    const apiUrl = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(feed.url);
+    const resp = await fetch(apiUrl);
+    if (!resp.ok) throw new Error('RSS fetch failed');
+    const data = await resp.json();
+    if (data.status !== 'ok' || !data.items) throw new Error('Bad RSS data');
+    return data.items.map(function(item) {
+      return {
+        source: feed.name,
+        title: item.title,
+        link: item.link,
+        desc: item.description ? item.description.replace(/<[^>]*>/g, '').substring(0, 150) : '',
+        date: item.pubDate || ''
+      };
+    });
+  }
+
+  // Brand colors for each source
+  var brands = {
+    'RailFreight':       { bg:'#B71C1C', color:'#FF8A80', accent:'#E53935', icon:'https://www.railfreight.com/favicon.ico' },
+    'Astana Times':      { bg:'#00695C', color:'#80CBC4', accent:'#26A69A', icon:'https://astanatimes.com/wp-content/themes/astanatimes/assets/images/icons/news-in-kazakhstan.ico' },
+    'The Diplomat':      { bg:'#1A237E', color:'#9FA8DA', accent:'#5C6BC0', icon:'https://thediplomat.com/favicon.ico' },
+    'The Loadstar':      { bg:'#0D1B2A', color:'#4FC3F7', accent:'#4FC3F7', icon:'https://theloadstar.com/favicon.ico' },
+    'gCaptain':          { bg:'#01579B', color:'#4FC3F7', accent:'#039BE5', icon:'https://gcaptain.com/wp-content/uploads/2018/04/gCaptain_200x200-200x200.jpg' },
+    'Hellenic Shipping': { bg:'#1B3A5C', color:'#90CAF9', accent:'#42A5F5', icon:'https://www.hellenicshippingnews.com/wp-content/uploads/2014/04/favicon.ico' },
+    'Supply Chain Dive': { bg:'#4A148C', color:'#CE93D8', accent:'#AB47BC', icon:'https://supplychaindive.com/apple-touch-icon.png?v=3' },
+    'Air Cargo News':    { bg:'#E65100', color:'#FFB74D', accent:'#FB8C00', icon:'https://aircargonews.net/favicon.ico' },
+    'FreightWaves':      { bg:'#1A237E', color:'#7C4DFF', accent:'#7C4DFF', icon:'https://freightwaves.b-cdn.net/wp-content/uploads/2019/03/cropped-FW-square-logo.png?fit=180,180' },
+    'default':           { bg:'#1B2A4A', color:'#C6A46D', accent:'#C6A46D', icon:'' }
+  };
+
+  function renderIndexNews(articles) {
+    var container = document.getElementById('indexNewsFeed');
+    if (!container) return;
+    var cards = articles.slice(0, 4);
+    container.innerHTML = cards.map(function(a) {
+      var b = brands[a.source] || brands['default'];
+      var dateStr = a.date ? new Date(a.date).toLocaleDateString('ru-RU', { day:'numeric', month:'short' }) : '';
+      return '<div style="border-radius:16px;overflow:hidden;border:1px solid var(--border-light);transition:all .4s;cursor:pointer" onmouseover="this.style.transform=\'translateY(-4px)\';this.style.boxShadow=\'0 8px 30px rgba(0,0,0,.08)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'">' +
+        '<div style="background:'+b.bg+';padding:14px 20px;display:flex;align-items:center;justify-content:space-between">' +
+          '<div style="display:flex;align-items:center;gap:8px">' +
+            '<img src="'+b.icon+'" alt="" style="width:22px;height:22px;border-radius:4px;background:rgba(255,255,255,.1)" onerror="this.style.display=\'none\'">' +
+            '<span style="font-size:11px;font-weight:700;color:'+b.color+'">'+a.source+'</span>' +
+          '</div>' +
+          '<span style="font-size:9px;color:rgba(255,255,255,.35)">'+dateStr+'</span>' +
+        '</div>' +
+        '<div style="padding:20px;background:#fff">' +
+          '<h3 style="font-size:14px;margin-bottom:8px;line-height:1.35"><a href="'+(a.link||'#')+'" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none;transition:color .3s" onmouseover="this.style.color=\''+b.accent+'\'" onmouseout="this.style.color=\'var(--text)\'">'+a.title+'</a></h3>' +
+          '<p style="font-size:12px;color:var(--text-light);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">'+a.desc+'</p>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  async function loadIndexNews() {
+    try {
+      var results = await Promise.allSettled(rssFeeds.map(function(f) { return fetchRSS(f); }));
+      var allArticles = [];
+      var anySuccess = false;
+      results.forEach(function(r) {
+        if (r.status === 'fulfilled') {
+          allArticles = allArticles.concat(r.value);
+          anySuccess = true;
+        }
+      });
+      if (!anySuccess) throw new Error('All feeds failed');
+      // Pick 1 latest article from each unique source
+      var bySource = {};
+      allArticles.sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
+      allArticles.forEach(function(a) {
+        if (!bySource[a.source]) bySource[a.source] = a;
+      });
+      var onePerSource = Object.values(bySource).slice(0, 4);
+      renderIndexNews(onePerSource);
+    } catch (e) {
+      console.error('Index news feed error:', e);
+      // Keep static fallback cards — do nothing
+    }
+  }
+
+  loadIndexNews();
+  setInterval(loadIndexNews, 300000); // refresh every 5 minutes
+})();
+</script>
+<script src="voice-assistant.js"></script>
+</body>
+</html>

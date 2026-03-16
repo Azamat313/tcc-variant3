@@ -1,0 +1,2064 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Исследователь маршрутов — TransCaspian Cargo</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://d3js.org/topojson.v3.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{background:#0F172A;color:#fff;font-family:'Montserrat',sans-serif;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+::selection{background:rgba(198,164,109,.35);color:#fff}
+:root{
+  --gold:#C6A46D;--gold-light:#D4B87E;--gold-dark:#A38450;
+  --bg:#0F172A;--bg-panel:#1E293B;--bg-card:#273548;
+  --cyan:#06B6D4;--green:#22c55e;--red:#ef4444;
+  --text:#E2E8F0;--text-mid:#94A3B8;--text-dim:#64748B;
+  --border:rgba(198,164,109,.2);
+}
+
+/* TOP BAR */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:200;height:52px;background:rgba(15,23,42,.94);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;padding:0 20px}
+.topbar-left{display:flex;align-items:center;gap:14px}
+.back-link{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-mid);font-weight:600;transition:color .3s;white-space:nowrap}
+.back-link:hover{color:var(--gold)}
+.back-link svg{width:14px;height:14px}
+.topbar-title{font-size:13px;font-weight:700;color:#fff;letter-spacing:.02em;white-space:nowrap}
+.topbar-title span{color:var(--gold)}
+
+.topbar-center{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.04);border-radius:10px;padding:3px}
+.layer-btn{padding:6px 14px;border-radius:8px;font-size:10px;font-weight:600;color:var(--text-mid);cursor:pointer;transition:all .25s;border:none;background:none;letter-spacing:.03em;font-family:'Montserrat',sans-serif;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.layer-btn:hover{color:#fff}
+.layer-btn.active{background:var(--gold);color:#fff}
+.layer-btn svg{flex-shrink:0}
+
+.topbar-right{display:flex;align-items:center;gap:6px}
+.ctrl-btn{width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--text-mid);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;transition:all .2s;font-family:'Montserrat',sans-serif}
+.ctrl-btn:hover{background:rgba(198,164,109,.15);border-color:var(--gold);color:var(--gold)}
+
+/* LAYOUT */
+.app{display:flex;height:100vh;padding-top:52px}
+.globe-wrap{flex:1;position:relative;overflow:hidden;cursor:grab}
+.globe-wrap:active{cursor:grabbing}
+.globe-wrap canvas{display:block;width:100%;height:100%}
+
+/* RIGHT PANEL */
+.panel{width:340px;background:var(--bg-panel);border-left:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.panel-scroll{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--gold-dark) transparent}
+.panel-scroll::-webkit-scrollbar{width:4px}
+.panel-scroll::-webkit-scrollbar-thumb{background:var(--gold-dark);border-radius:4px}
+
+.panel-header{padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,.06)}
+.panel-header h2{font-size:16px;font-weight:800;background:linear-gradient(135deg,var(--gold),var(--gold-light));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.panel-header p{font-size:10px;color:var(--text-dim);margin-top:2px;letter-spacing:.03em}
+
+/* SECTION COLLAPSE */
+.sec{border-bottom:1px solid rgba(255,255,255,.04)}
+.sec-head{padding:12px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;transition:background .2s}
+.sec-head:hover{background:rgba(255,255,255,.02)}
+.sec-head h3{font-size:11px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.08em}
+.sec-head .chevron{font-size:12px;color:var(--text-dim);transition:transform .25s}
+.sec-head.open .chevron{transform:rotate(180deg)}
+.sec-body{overflow:hidden;transition:max-height .35s ease;max-height:0}
+.sec-body.open{max-height:3000px}
+.sec-body-inner{padding:0 20px 16px}
+
+/* STATS GRID */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-card{background:var(--bg-card);border-radius:10px;padding:14px;text-align:center;border:1px solid rgba(255,255,255,.04)}
+.stat-card .val{font-size:20px;font-weight:800;color:var(--gold);line-height:1.2}
+.stat-card .val small{font-size:10px;color:var(--text-mid);font-weight:500}
+.stat-card .lbl{font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-top:3px}
+
+/* TIMELINE */
+.timeline{position:relative;padding-left:20px}
+.timeline::before{content:'';position:absolute;left:8px;top:8px;bottom:8px;width:2px;background:rgba(255,255,255,.06);border-radius:1px}
+.tl-item{position:relative;padding:6px 0 6px 14px;cursor:pointer;transition:background .2s;border-radius:6px;margin:0 -4px;padding-right:4px}
+.tl-item:hover{background:rgba(255,255,255,.03)}
+.tl-dot{position:absolute;left:-16px;top:10px;width:10px;height:10px;border-radius:50%;border:2px solid rgba(255,255,255,.1)}
+.tl-dot.origin{background:#fff;box-shadow:0 0 6px rgba(255,255,255,.3)}
+.tl-dot.corridor{background:var(--green);box-shadow:0 0 6px rgba(34,197,94,.3)}
+.tl-dot.port{background:var(--cyan);box-shadow:0 0 6px rgba(6,182,212,.3)}
+.tl-dot.hub{background:var(--gold);box-shadow:0 0 6px rgba(198,164,109,.4)}
+.tl-dot.dest{background:#fff;box-shadow:0 0 6px rgba(255,255,255,.3)}
+.tl-name{font-size:11px;font-weight:600;color:#fff}
+.tl-role{font-size:9px;color:var(--text-dim);margin-top:1px}
+
+/* INFO CARD */
+.info-card{animation:cardIn .3s ease}
+@keyframes cardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.info-badge{display:inline-flex;align-items:center;gap:5px;border-radius:16px;padding:3px 10px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.info-badge.origin{background:rgba(255,255,255,.1);color:#fff}
+.info-badge.corridor{background:rgba(34,197,94,.12);color:var(--green)}
+.info-badge.port{background:rgba(6,182,212,.12);color:var(--cyan)}
+.info-badge.hub{background:rgba(198,164,109,.15);color:var(--gold)}
+.info-badge.dest{background:rgba(255,255,255,.1);color:#fff}
+.info-badge .bdot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.info-title{font-size:18px;font-weight:800;margin-bottom:4px}
+.info-desc{font-size:12px;color:var(--text-mid);line-height:1.6;margin-bottom:12px}
+.detail-row{background:var(--bg-card);border-radius:8px;padding:10px 12px;border:1px solid rgba(255,255,255,.04);margin-bottom:6px}
+.detail-row .dlabel{font-size:8px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;font-weight:700}
+.detail-row .dval{font-size:11px;color:var(--text);line-height:1.5}
+
+/* SEGMENT INFO */
+.seg-from-to{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.seg-city{font-size:13px;font-weight:700;color:#fff}
+.seg-arrow{color:var(--gold);font-size:16px}
+.seg-type-badge{display:inline-flex;align-items:center;gap:5px;border-radius:16px;padding:3px 12px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;background:rgba(198,164,109,.12);color:var(--gold);margin-bottom:12px}
+
+/* VESSEL/PLANE INFO */
+.transport-info .ti-name{font-size:15px;font-weight:700;margin-bottom:2px}
+.transport-info .ti-route{font-size:11px;color:var(--gold);font-weight:600;margin-bottom:10px}
+
+/* COMPARISON TABLE */
+.cmp-table{width:100%;border-collapse:collapse;font-size:10px}
+.cmp-table th{text-align:left;padding:6px 8px;color:var(--text-dim);font-weight:600;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid rgba(255,255,255,.06);font-size:8px}
+.cmp-table td{padding:6px 8px;color:var(--text);border-bottom:1px solid rgba(255,255,255,.04)}
+.cmp-table tr.hl td{background:rgba(198,164,109,.06)}
+.cmp-table .risk-low{color:var(--green)}
+.cmp-table .risk-med{color:#FFA726}
+.cmp-table .risk-high{color:var(--red)}
+
+/* LEGEND */
+.legend-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}
+.legend-item{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--text-mid)}
+.legend-dot{width:7px;height:7px;border-radius:50%}
+.legend-line{width:16px;height:2px;border-radius:1px}
+
+/* DATA OVERLAYS */
+.data-overlay{position:absolute;z-index:50;background:rgba(15,23,42,.85);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:14px 16px;pointer-events:none;opacity:0;transition:opacity .4s;font-size:11px}
+.data-overlay.visible{opacity:1}
+.data-overlay .do-val{font-size:22px;font-weight:800;color:var(--gold);line-height:1.1}
+.data-overlay .do-badge{font-size:10px;font-weight:700;color:var(--green);margin-top:2px}
+.data-overlay .do-label{font-size:9px;color:var(--text-dim);margin-top:4px;text-transform:uppercase;letter-spacing:.06em}
+
+/* MINI BAR CHART */
+.do-bars{display:flex;align-items:flex-end;gap:3px;height:36px;margin-top:8px}
+.do-bar{flex:1;background:rgba(198,164,109,.2);border-radius:2px 2px 0 0;transition:height 1s}
+.do-bar.hl{background:var(--gold)}
+
+/* MINI TABLE OVERLAY */
+.do-minitbl{font-size:9px;margin-top:6px}
+.do-minitbl td{padding:2px 6px}
+.do-minitbl .name{color:#fff;font-weight:600}
+.do-minitbl .val{color:var(--gold);font-weight:700}
+
+/* NEWS TICKER OVERLAY */
+.do-ticker{overflow:hidden;white-space:nowrap;margin-top:6px;width:200px}
+.do-ticker-inner{display:inline-block;animation:tickScroll 20s linear infinite;padding-left:100%}
+.do-ticker-inner span{margin-right:30px;font-size:10px;color:var(--text)}
+@keyframes tickScroll{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
+
+/* LIVE INDICATOR */
+.live-dot{display:inline-flex;align-items:center;gap:4px;font-size:8px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:.06em;margin-left:6px;vertical-align:middle}
+.live-dot::before{content:'';width:6px;height:6px;border-radius:50%;background:#ef4444;animation:livePulse 1.5s ease-in-out infinite}
+@keyframes livePulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(239,68,68,.4)}50%{opacity:.6;box-shadow:0 0 0 4px rgba(239,68,68,0)}}
+
+/* TOOLTIP */
+.globe-tooltip{position:absolute;pointer-events:none;z-index:80;background:rgba(30,41,59,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(198,164,109,.25);border-radius:10px;padding:8px 14px;font-size:10px;color:#fff;font-weight:600;white-space:nowrap;opacity:0;transition:opacity .15s;box-shadow:0 8px 24px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.04)}
+.globe-tooltip.visible{opacity:1}
+
+/* MOBILE */
+@media(max-width:900px){
+  .app{flex-direction:column}
+  .globe-wrap{flex:1;min-height:50vh}
+  .panel{width:100%;height:50vh;border-left:none;border-top:1px solid rgba(255,255,255,.06);transform:translateY(0);position:relative}
+  .panel.collapsed{transform:translateY(calc(100% - 48px))}
+  .panel-header{cursor:pointer}
+  .topbar-center{display:none}
+  .data-overlay{display:none!important}
+}
+@media(max-width:600px){
+  .topbar{padding:0 10px}
+  .topbar-title{font-size:10px}
+  .ctrl-btn{width:28px;height:28px;font-size:13px}
+  .panel{width:100%}
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <a href="index.html" class="back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      На главную
+    </a>
+    <div class="topbar-title"><span>Исследователь</span> маршрутов</div>
+  </div>
+
+  <div class="topbar-center">
+    <button class="layer-btn active" data-layer="routes" onclick="toggleLayer('routes',this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> Маршруты</button>
+    <button class="layer-btn" data-layer="ships" onclick="toggleLayer('ships',this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20l.8-2.2c.3-.7 1-1.3 1.8-1.3h14.8c.8 0 1.5.5 1.8 1.3L22 20"/><path d="M4 16.5V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8.5"/><path d="M12 6V2"/></svg> Суда</button>
+    <button class="layer-btn" data-layer="planes" onclick="toggleLayer('planes',this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg> Авиа</button>
+    <button class="layer-btn" data-layer="data" onclick="toggleLayer('data',this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg> Данные</button>
+  </div>
+
+  <div class="topbar-right">
+    <button class="ctrl-btn" id="zoomIn" title="Приблизить"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35M11 8v6M8 11h6"/></svg></button>
+    <button class="ctrl-btn" id="zoomOut" title="Отдалить"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35M8 11h6"/></svg></button>
+    <button class="ctrl-btn" id="resetView" title="Сбросить вид"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app">
+  <!-- GLOBE -->
+  <div class="globe-wrap" id="globeWrap">
+    <canvas id="globeCanvas"></canvas>
+    <div class="globe-tooltip" id="tooltip"></div>
+
+    <!-- DATA OVERLAYS (layer 4) -->
+    <div class="data-overlay" id="doTopLeft" style="top:16px;left:16px">
+      <div class="do-val">4.5 млн т</div>
+      <div class="do-badge">+62% к 2023</div>
+      <div class="do-label">Грузопоток ТМТМ 2024</div>
+      <div class="do-bars" id="doBars"></div>
+    </div>
+    <div class="data-overlay" id="doTopRight" style="top:16px;right:360px">
+      <div class="do-val">90,637 TEU</div>
+      <div class="do-badge">+29%</div>
+      <div class="do-label">Контейнерные перевозки</div>
+    </div>
+    <div class="data-overlay" id="doBotLeft" style="bottom:16px;left:16px">
+      <div style="font-size:10px;font-weight:700;color:#fff;margin-bottom:6px">Сравнение коридоров</div>
+      <table class="do-minitbl">
+        <tr><td class="name">Средний</td><td class="val">15-18 д</td></tr>
+        <tr><td class="name">Северный</td><td class="val">12-16 д</td></tr>
+        <tr><td class="name">Морской</td><td class="val">35-45 д</td></tr>
+      </table>
+    </div>
+    <div class="data-overlay" id="doBotRight" style="bottom:16px;right:360px">
+      <div style="font-size:10px;font-weight:700;color:#fff;margin-bottom:4px">Новости</div>
+      <div class="do-ticker"><div class="do-ticker-inner">
+        <span>Суэц: трафик -90%</span>
+        <span>Ставки Шанхай-Роттердам +80%</span>
+        <span>Хоргос: рекорд 372K TEU</span>
+        <span>EU: EUR 12 млрд на ЦА</span>
+        <span>КЗ транзит +7.9%</span>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel" id="panel">
+    <div class="panel-header">
+      <h2>Средний коридор</h2>
+      <p>Trans-Caspian International Transport Route</p>
+    </div>
+    <div class="panel-scroll" id="panelScroll">
+
+      <!-- Section 1: Key stats -->
+      <div class="sec">
+        <div class="sec-head open" onclick="toggleSec(this)">
+          <h3>Ключевые показатели</h3>
+          <span class="chevron">&#9660;</span>
+        </div>
+        <div class="sec-body open">
+          <div class="sec-body-inner">
+            <div class="stats-grid" id="statsGrid">
+              <div class="stat-card"><div class="val">6 500<small>+ км</small></div><div class="lbl">Длина</div></div>
+              <div class="stat-card"><div class="val">15-18<small> д</small></div><div class="lbl">Транзит</div></div>
+              <div class="stat-card"><div class="val">4.5<small> млн т</small></div><div class="lbl">Грузы 2024</div></div>
+              <div class="stat-card"><div class="val">+62<small>%</small></div><div class="lbl">Рост</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Route timeline -->
+      <div class="sec">
+        <div class="sec-head open" onclick="toggleSec(this)">
+          <h3>Маршрут</h3>
+          <span class="chevron">&#9660;</span>
+        </div>
+        <div class="sec-body open">
+          <div class="sec-body-inner">
+            <div class="timeline" id="timeline"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Info (dynamic) -->
+      <div class="sec" id="infoSection" style="display:none">
+        <div class="sec-head open" onclick="toggleSec(this)">
+          <h3 id="infoSectionTitle">Информация</h3>
+          <span class="chevron">&#9660;</span>
+        </div>
+        <div class="sec-body open">
+          <div class="sec-body-inner" id="infoContent"></div>
+        </div>
+      </div>
+
+      <!-- Section 4: Comparison -->
+      <div class="sec">
+        <div class="sec-head" onclick="toggleSec(this)">
+          <h3>Сравнение коридоров</h3>
+          <span class="chevron">&#9660;</span>
+        </div>
+        <div class="sec-body">
+          <div class="sec-body-inner">
+            <table class="cmp-table">
+              <thead><tr><th>Коридор</th><th>Время</th><th>Стоимость</th><th>Перевалки</th><th>Риск</th></tr></thead>
+              <tbody>
+                <tr class="hl"><td>Средний</td><td>15-18 д</td><td>$$$</td><td>3-4</td><td class="risk-low">Низкий</td></tr>
+                <tr><td>Северный</td><td>12-16 д</td><td>$$</td><td>1-2</td><td class="risk-high">Высокий</td></tr>
+                <tr><td>Морской</td><td>35-45 д</td><td>$</td><td>1-2</td><td class="risk-med">Средний</td></tr>
+                <tr><td>INSTC</td><td>20-25 д</td><td>$$</td><td>2-3</td><td class="risk-med">Средний</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 5: Legend -->
+      <div class="sec">
+        <div class="sec-head" onclick="toggleSec(this)">
+          <h3>Легенда</h3>
+          <span class="chevron">&#9660;</span>
+        </div>
+        <div class="sec-body">
+          <div class="sec-body-inner">
+            <div style="font-size:9px;color:var(--text-dim);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Типы городов</div>
+            <div class="legend-row">
+              <div class="legend-item"><div class="legend-dot" style="background:var(--gold)"></div>TCC Hub</div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--cyan)"></div>Порт</div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Коридор</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#fff"></div>Начало/Конец</div>
+            </div>
+            <div style="font-size:9px;color:var(--text-dim);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin:10px 0 6px">Маршруты</div>
+            <div class="legend-row">
+              <div class="legend-item"><div class="legend-line" style="background:var(--gold)"></div>Ж/Д</div>
+              <div class="legend-item"><div class="legend-line" style="background:var(--gold);opacity:.6;border-top:2px dashed var(--gold);height:0"></div>Паром</div>
+              <div class="legend-item"><div class="legend-line" style="background:var(--cyan)"></div>Морской</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ===================== DATA =====================
+const mainCities = [
+  {id:'shanghai',name:'Шанхай',lon:121.5,lat:31.2,type:'origin',
+    desc:'Крупнейший контейнерный порт мира',
+    role:'Начальная точка коридора',
+    details:[
+      {label:'Мощность',value:'47+ млн TEU/год'},
+      {label:'Роль',value:'Начальная точка Среднего коридора для грузов из Юго-Восточной Азии и Китая'},
+      {label:'Инфраструктура',value:'Yangshan Deep Water Port, автоматизированный терминал'}
+    ]},
+  {id:'xian',name:'Сиань',lon:109,lat:34.3,type:'corridor',
+    desc:'Стартовый хаб BRI, крупнейший ж/д хаб западного Китая',
+    role:'Консолидация грузов',
+    details:[
+      {label:'Роль',value:'Консолидация грузов для отправки по Среднему коридору'},
+      {label:'Инфраструктура',value:"Xi'an International Inland Port"}
+    ]},
+  {id:'urumqi',name:'Урумчи',lon:87.6,lat:43.8,type:'corridor',
+    desc:'Столица Синьцзяна, ворота в Центральную Азию',
+    role:'Последний хаб КНР',
+    details:[
+      {label:'Роль',value:'Последний крупный китайский хаб перед границей'},
+      {label:'Колея',value:'Переход с 1435мм (стандарт) на 1520мм (широкая) на границе'}
+    ]},
+  {id:'khorgos',name:'Хоргос',lon:80.3,lat:44.2,type:'port',
+    desc:'Крупнейший сухой порт на границе Китай-Казахстан',
+    role:'Смена колеи, 372K TEU',
+    details:[
+      {label:'Мощность',value:'372 000 TEU в 2025 году'},
+      {label:'Время обработки',value:'Сокращено с 5 часов до 1 часа'},
+      {label:'Роль',value:'Ключевая точка перевалки, смена колеи 1435мм → 1520мм'},
+      {label:'Оператор',value:'Khorgos Gateway, СЭЗ'}
+    ]},
+  {id:'dostyk',name:'Достык',lon:80.4,lat:45.5,type:'corridor',
+    desc:'Альтернативный пограничный переход Китай-Казахстан',
+    role:'Исторический переход',
+    details:[
+      {label:'Роль',value:'Исторический ж/д переход, работает с советских времён'},
+      {label:'Колея',value:'Смена 1435мм → 1520мм'}
+    ]},
+  {id:'almaty',name:'Алматы',lon:76.9,lat:43.2,type:'corridor',
+    desc:'Крупнейший город Казахстана, логистический хаб ЦА',
+    role:'Распределительный центр ЦА',
+    details:[
+      {label:'Роль',value:'Распределительный центр для Центральной Азии'},
+      {label:'Инфраструктура',value:'Международный аэропорт, ж/д узел'}
+    ]},
+  {id:'astana',name:'Астана',lon:71.4,lat:51.1,type:'corridor',
+    desc:'Столица Казахстана',
+    role:'HQ KTZ Express',
+    details:[
+      {label:'Роль',value:'Административный центр, HQ KTZ Express'},
+      {label:'Инфраструктура',value:'Ж/Д узел северного направления'}
+    ]},
+  {id:'atyrau',name:'Атырау',lon:51.9,lat:47.1,type:'hub',
+    desc:'Штаб-квартира TransCaspian Cargo',
+    role:'TCC Hub',
+    details:[
+      {label:'Роль',value:'Стратегический центр управления цепями поставок'},
+      {label:'Инфраструктура',value:'TCC Hub — образовательная и экспертная платформа'},
+      {label:'Контакт',value:'+7 771 054 4898, info@tc-cargo.kz'}
+    ]},
+  {id:'aktau',name:'Актау',lon:51.1,lat:43.6,type:'port',
+    desc:'Крупнейший каспийский порт Казахстана',
+    role:'Перевалка на паромы',
+    details:[
+      {label:'Мощность',value:'6+ млн тонн/год, расширение до 10М'},
+      {label:'Роль',value:'Перевалка на каспийские паромы Актау→Баку'},
+      {label:'Маршрут',value:'Паромная переправа через Каспийское море (18-24 часа)'}
+    ]},
+  {id:'kuryk',name:'Курык',lon:51.4,lat:42.9,type:'port',
+    desc:'Новый каспийский порт Казахстана',
+    role:'Ro-Ro терминал',
+    details:[
+      {label:'Мощность',value:'1.96 млн тонн в 2024, цель 2.45М в 2025'},
+      {label:'Роль',value:'Современный Ro-Ro терминал, альтернатива Актау'},
+      {label:'Инфраструктура',value:'Новые суперпаромы на 120 вагонов'}
+    ]},
+  {id:'baku',name:'Баку / Алат',lon:49.9,lat:40.4,type:'port',
+    desc:'Международный морской торговый порт Баку (Алат)',
+    role:'Каспийский хаб АЗ',
+    details:[
+      {label:'Мощность',value:'15 млн тонн, расширение до 25М'},
+      {label:'Роль',value:'Приём каспийских паромов, перевалка на ж/д Азербайджана'},
+      {label:'Инфраструктура',value:'Современный порт 60км южнее Баку'}
+    ]},
+  {id:'tbilisi',name:'Тбилиси',lon:44.8,lat:41.7,type:'corridor',
+    desc:'Столица Грузии, ж/д хаб',
+    role:'BTK Railway транзит',
+    details:[
+      {label:'Роль',value:'Транзит через BTK (Баку-Тбилиси-Карс) железную дорогу'},
+      {label:'Инфраструктура',value:'BTK Railway (826 км, с 2017)'}
+    ]},
+  {id:'poti',name:'Поти',lon:41.7,lat:42.15,type:'port',
+    desc:'Черноморский порт Грузии',
+    role:'Перевалка на Чёрное море',
+    details:[
+      {label:'Роль',value:'Перевалка на черноморские суда → Констанца/Европа'},
+      {label:'Маршрут',value:'Морской путь в Румынию и далее'}
+    ]},
+  {id:'batumi',name:'Батуми',lon:41.6,lat:41.6,type:'port',
+    desc:'Черноморский порт Грузии',
+    role:'Нефтяной терминал',
+    details:[{label:'Роль',value:'Альтернатива Поти, нефтяной терминал'}]},
+  {id:'kars',name:'Карс',lon:43.1,lat:40.6,type:'corridor',
+    desc:'Турецкий город на BTK Railway',
+    role:'Вход в турецкую ж/д',
+    details:[
+      {label:'Роль',value:'Точка соединения BTK с турецкой ж/д сетью'},
+      {label:'Инфраструктура',value:'BTK ж/д, мощность расширяется до 5М тонн'}
+    ]},
+  {id:'istanbul',name:'Стамбул',lon:29,lat:41,type:'corridor',
+    desc:'Мост между Азией и Европой',
+    role:'Выход в Европу',
+    details:[
+      {label:'Роль',value:'Морской/ж/д хаб, выход в Европу'},
+      {label:'Инфраструктура',value:'Мармарай тоннель, порты'}
+    ]},
+  {id:'constanta',name:'Констанца',lon:28.6,lat:44.2,type:'port',
+    desc:'Крупнейший черноморский порт Румынии',
+    role:'Приём грузов из Грузии',
+    details:[{label:'Роль',value:'Приём грузов из Поти/Батуми, выход в ЕС'}]},
+  {id:'rotterdam',name:'Роттердам',lon:4.5,lat:51.9,type:'dest',
+    desc:'Крупнейший порт Европы',
+    role:'Конечная точка',
+    details:[
+      {label:'Мощность',value:'440+ млн тонн/год'},
+      {label:'Роль',value:'Конечная точка Среднего коридора'}
+    ]},
+  {id:'hamburg',name:'Гамбург',lon:10,lat:53.6,type:'dest',
+    desc:'Крупнейший порт Германии',
+    role:'Альтернативная конечная',
+    details:[{label:'Роль',value:'Альтернативная конечная точка'}]}
+];
+
+const contextCities = [
+  {id:'moscow',name:'Москва',lon:37.6,lat:55.75,type:'context'},
+  {id:'dubai',name:'Дубай',lon:55.3,lat:25.2,type:'context'},
+  {id:'tashkent',name:'Ташкент',lon:69.3,lat:41.3,type:'context'},
+  {id:'tehran',name:'Тегеран',lon:51.4,lat:35.7,type:'context'},
+  {id:'beijing',name:'Пекин',lon:116.4,lat:39.9,type:'context'},
+  {id:'london',name:'Лондон',lon:-0.12,lat:51.5,type:'context'},
+  {id:'mumbai',name:'Мумбаи',lon:72.9,lat:19.1,type:'context'}
+];
+
+const routeSegments = [
+  {from:'shanghai',to:'xian',info:'Ж/Д · 1435мм · Китайская ж/д сеть · ~1700 км',type:'Железная дорога',gauge:'1435мм',dist:'~1700 км'},
+  {from:'xian',to:'urumqi',info:'Ж/Д · 1435мм · Ланьчжоу-Синьцзян линия · ~2500 км',type:'Железная дорога',gauge:'1435мм',dist:'~2500 км'},
+  {from:'urumqi',to:'khorgos',info:'Ж/Д · Смена колеи 1435→1520мм · ~700 км',type:'Железная дорога',gauge:'1435→1520мм',dist:'~700 км'},
+  {from:'urumqi',to:'dostyk',info:'Ж/Д · Смена колеи 1435→1520мм · ~700 км',type:'Железная дорога',gauge:'1435→1520мм',dist:'~700 км'},
+  {from:'khorgos',to:'almaty',info:'Ж/Д · 1520мм · KTZ · ~350 км',type:'Железная дорога',gauge:'1520мм',dist:'~350 км'},
+  {from:'almaty',to:'astana',info:'Ж/Д · 1520мм · KTZ · ~1200 км',type:'Железная дорога',gauge:'1520мм',dist:'~1200 км'},
+  {from:'astana',to:'atyrau',info:'Ж/Д · 1520мм · KTZ · ~2100 км',type:'Железная дорога',gauge:'1520мм',dist:'~2100 км'},
+  {from:'atyrau',to:'aktau',info:'Ж/Д · 1520мм · KTZ · ~700 км',type:'Железная дорога',gauge:'1520мм',dist:'~700 км'},
+  {from:'aktau',to:'baku',info:'Паром · Каспийское море · 18-24 часа · ~350 км',type:'Паром',gauge:'—',dist:'~350 км'},
+  {from:'baku',to:'tbilisi',info:'Ж/Д · BTK Railway · 1520мм · ~500 км',type:'Железная дорога',gauge:'1520мм',dist:'~500 км'},
+  {from:'tbilisi',to:'poti',info:'Ж/Д · Грузинская ж/д · ~350 км',type:'Железная дорога',gauge:'1520мм',dist:'~350 км'},
+  {from:'tbilisi',to:'kars',info:'Ж/Д · BTK Railway · Смена 1520→1435мм · ~300 км',type:'Железная дорога',gauge:'1520→1435мм',dist:'~300 км'},
+  {from:'kars',to:'istanbul',info:'Ж/Д · TCDD · 1435мм · ~1500 км',type:'Железная дорога',gauge:'1435мм',dist:'~1500 км'},
+  {from:'poti',to:'constanta',info:'Морской · Чёрное море · 2-3 дня · ~1100 км',type:'Морской',gauge:'—',dist:'~1100 км'},
+  {from:'istanbul',to:'rotterdam',info:'Ж/Д + Авто · Европейская сеть · ~2500 км',type:'Ж/Д + Авто',gauge:'1435мм',dist:'~2500 км'}
+];
+
+const ships = [
+  {name:'MV Caspian Star',from:'Актау',to:'Баку',fromLon:51.1,fromLat:43.6,toLon:49.9,toLat:40.4,cargo:'Контейнеры',tonnage:'12,000 DWT',speed:12},
+  {name:'Professor Gul',from:'Курык',to:'Алат',fromLon:51.4,fromLat:42.9,toLon:49.9,toLat:40.4,cargo:'Ro-Ro вагоны',tonnage:'8,500 DWT',speed:10},
+  {name:'MV Black Sea',from:'Поти',to:'Констанца',fromLon:41.7,fromLat:42.15,toLon:28.6,toLat:44.2,cargo:'Зерно',tonnage:'25,000 DWT',speed:14},
+  {name:'Batumi Express',from:'Батуми',to:'Стамбул',fromLon:41.6,fromLat:41.6,toLon:29,toLat:41,cargo:'Нефть',tonnage:'45,000 DWT',speed:13},
+  {name:'Silk Wind',from:'Актау',to:'Алат',fromLon:51.1,fromLat:43.6,toLon:49.9,toLat:40.4,cargo:'Сухогруз',tonnage:'5,400 DWT',speed:11},
+];
+
+const planes = [
+  {flight:'TC-401',from:'Атырау',to:'Стамбул',fromLon:51.9,fromLat:47.1,toLon:29,toLat:41,cargo:'Express cargo',alt:'10,000м'},
+  {flight:'TC-502',from:'Алматы',to:'Франкфурт',fromLon:76.9,fromLat:43.2,toLon:8.7,toLat:50.1,cargo:'Электроника',alt:'11,500м'},
+  {flight:'TC-603',from:'Шанхай',to:'Алматы',fromLon:121.5,fromLat:31.2,toLon:76.9,toLat:43.2,cargo:'E-commerce',alt:'10,500м'},
+  {flight:'TC-704',from:'Астана',to:'Дубай',fromLon:71.4,fromLat:51.1,toLon:55.3,toLat:25.2,cargo:'Фарма',alt:'11,000м'},
+];
+
+const allMainById = {};
+mainCities.forEach(c => allMainById[c.id] = c);
+
+const typeColors = {origin:'#ffffff',corridor:'#22c55e',port:'#06B6D4',hub:'#C6A46D',dest:'#ffffff',context:'rgba(198,164,109,.35)'};
+const typeLabels = {origin:'Начальная точка',corridor:'Город коридора',port:'Порт',hub:'TCC Hub',dest:'Конечная точка',context:'Контекст'};
+
+// ===================== LAYER STATE =====================
+let showRoutes = true, showShips = false, showPlanes = false, showData = false;
+
+function toggleLayer(layer, btn) {
+  if (layer === 'routes') showRoutes = !showRoutes;
+  else if (layer === 'ships') showShips = !showShips;
+  else if (layer === 'planes') showPlanes = !showPlanes;
+  else if (layer === 'data') showData = !showData;
+  btn.classList.toggle('active');
+  updateDataOverlays();
+}
+
+function updateDataOverlays() {
+  const els = document.querySelectorAll('.data-overlay');
+  els.forEach(el => {
+    if (showData) el.classList.add('visible');
+    else el.classList.remove('visible');
+  });
+}
+
+// ===================== COLLAPSIBLE SECTIONS =====================
+function toggleSec(head) {
+  head.classList.toggle('open');
+  const body = head.nextElementSibling;
+  body.classList.toggle('open');
+}
+
+// ===================== GLOBE SETUP (Canvas) =====================
+const wrap = document.getElementById('globeWrap');
+const canvas = document.getElementById('globeCanvas');
+const ctx = canvas.getContext('2d');
+const tooltip = document.getElementById('tooltip');
+
+let W, H, dpr;
+function resizeCanvas() {
+  dpr = window.devicePixelRatio || 1;
+  W = wrap.clientWidth;
+  H = wrap.clientHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+resizeCanvas();
+
+const initialScale = Math.min(W, H) * 0.52;
+let currentScale = initialScale;
+
+const projection = d3.geoOrthographic()
+  .scale(initialScale)
+  .translate([W / 2, H / 2])
+  .rotate([-55, -42])
+  .clipAngle(90);
+
+const pathGen = d3.geoPath(projection).context(ctx);
+
+let worldData = null;
+let landFeatures = null;
+let autoRotate = true;
+let rotateTimer = null;
+let animFrame = null;
+let needsRedraw = true;
+
+// Halftone pattern (offscreen)
+const haltCanvas = document.createElement('canvas');
+haltCanvas.width = 6; haltCanvas.height = 6;
+const hCtx = haltCanvas.getContext('2d');
+hCtx.fillStyle = '#1a2744';
+hCtx.fillRect(0, 0, 6, 6);
+hCtx.fillStyle = '#243352';
+hCtx.beginPath();
+hCtx.arc(3, 3, 1, 0, Math.PI * 2);
+hCtx.fill();
+
+// ===================== LOAD WORLD =====================
+d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(world => {
+  worldData = world;
+  landFeatures = topojson.feature(world, world.objects.countries).features;
+  buildTimeline();
+  buildDataBars();
+  needsRedraw = true;
+  startAutoRotate();
+  renderLoop();
+});
+
+// ===================== COLOR CONSTANTS =====================
+const RAIL_COLOR = '#F59E0B';     // amber
+const SEA_COLOR = '#06B6D4';      // cyan
+const AIR_COLOR = '#A78BFA';      // purple
+
+// Corridor country approximate centers for watermark labels
+const countryLabels = [
+  {name:'КАЗАХСТАН', lon:67, lat:48},
+  {name:'КИТАЙ', lon:100, lat:37},
+  {name:'АЗЕРБАЙДЖАН', lon:49.5, lat:40.5},
+  {name:'ГРУЗИЯ', lon:43.5, lat:42},
+  {name:'ТУРЦИЯ', lon:35, lat:39.5}
+];
+
+// Corridor country ISO codes for brighter fill
+const corridorCountryIds = new Set([
+  '398','156','031','268','792' // KAZ, CHN, AZE, GEO, TUR
+]);
+
+// City tier classification
+const tier1Ids = new Set(['atyrau','khorgos','aktau','baku','istanbul','rotterdam']);
+const tier2Ids = new Set(['xian','urumqi','dostyk','almaty','astana','tbilisi','kars','poti','batumi','kuryk','constanta','hamburg','shanghai']);
+
+// ===================== MAIN RENDER LOOP =====================
+let lastTime = 0;
+let seaDashOffset = 0;
+
+function renderLoop(ts) {
+  animFrame = requestAnimationFrame(renderLoop);
+  // Throttle to ~30fps
+  if (ts - lastTime < 33) return;
+  lastTime = ts;
+  seaDashOffset -= 0.5;
+  draw();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  // --- Atmosphere glow around globe edge ---
+  ctx.beginPath();
+  pathGen({type: 'Sphere'});
+  const atmosGrad = ctx.createRadialGradient(W*0.5, H*0.5, currentScale * 0.92, W*0.5, H*0.5, currentScale * 1.08);
+  atmosGrad.addColorStop(0, 'rgba(198,164,109,0)');
+  atmosGrad.addColorStop(0.5, 'rgba(198,164,109,0.04)');
+  atmosGrad.addColorStop(1, 'rgba(198,164,109,0)');
+  ctx.fillStyle = atmosGrad;
+  ctx.fill();
+
+  // --- Globe sphere ---
+  ctx.beginPath();
+  pathGen({type: 'Sphere'});
+  const grad = ctx.createRadialGradient(W * 0.4, H * 0.35, 0, W * 0.5, H * 0.5, currentScale);
+  grad.addColorStop(0, '#1E293B');
+  grad.addColorStop(1, '#0F172A');
+  ctx.fillStyle = grad;
+  ctx.fill();
+  // Gold border for globe edge
+  ctx.strokeStyle = 'rgba(198,164,109,0.12)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // --- Graticule ---
+  const graticule = d3.geoGraticule().step([15, 15]);
+  ctx.beginPath();
+  pathGen(graticule());
+  ctx.strokeStyle = 'rgba(255,255,255,.03)';
+  ctx.lineWidth = 0.5;
+  ctx.stroke();
+
+  // --- Land ---
+  if (landFeatures) {
+    const pat = ctx.createPattern(haltCanvas, 'repeat');
+    landFeatures.forEach(f => {
+      ctx.beginPath();
+      pathGen(f);
+      // Corridor countries get slightly brighter fill
+      const countryId = f.id || (f.properties && f.properties.id);
+      if (corridorCountryIds.has(String(countryId))) {
+        ctx.fillStyle = 'rgba(198,164,109,0.06)';
+      } else {
+        ctx.fillStyle = pat;
+      }
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(198,164,109,.1)';
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+    });
+  }
+
+  // --- Country watermark labels ---
+  drawCountryLabels();
+
+  // Layer 1: Routes
+  if (showRoutes) {
+    drawRoutes();
+    drawRouteDots();
+    drawRouteLabels();
+    drawCities();
+  }
+
+  // Layer 2: Ships
+  if (showShips) {
+    drawShips();
+  }
+
+  // Layer 3: Planes
+  if (showPlanes) {
+    drawPlanes();
+  }
+}
+
+// ===================== COUNTRY WATERMARK LABELS =====================
+function drawCountryLabels() {
+  // Only show at moderate zoom
+  if (currentScale < initialScale * 0.8 || currentScale > initialScale * 4) return;
+  ctx.save();
+  ctx.font = '800 14px Montserrat, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.letterSpacing = '0.15em';
+  countryLabels.forEach(cl => {
+    if (!isVisible(cl.lon, cl.lat)) return;
+    const p = projection([cl.lon, cl.lat]);
+    if (!p) return;
+    ctx.fillText(cl.name, p[0], p[1]);
+  });
+  ctx.restore();
+}
+
+// ===================== DRAW ROUTES =====================
+function drawRoutes() {
+  routeSegments.forEach(seg => {
+    const from = allMainById[seg.from];
+    const to = allMainById[seg.to];
+    if (!from || !to) return;
+    if (!isVisible(from.lon, from.lat) && !isVisible(to.lon, to.lat)) return;
+
+    const isSea = seg.type === 'Паром' || seg.type === 'Морской';
+    const color = isSea ? SEA_COLOR : RAIL_COLOR;
+
+    // Build interpolated path points for smooth curves
+    const interp = d3.geoInterpolate([from.lon, from.lat], [to.lon, to.lat]);
+    const steps = 30;
+    const points = [];
+    for (let i = 0; i <= steps; i++) {
+      const pos = interp(i / steps);
+      if (isVisible(pos[0], pos[1])) {
+        const p = projection(pos);
+        if (p) points.push(p);
+      }
+    }
+    if (points.length < 2) return;
+
+    ctx.save();
+
+    // Glow layer
+    ctx.beginPath();
+    ctx.moveTo(points[0][0], points[0][1]);
+    for (let i = 1; i < points.length; i++) {
+      // Quadratic curve smoothing
+      if (i < points.length - 1) {
+        const mx = (points[i][0] + points[i+1][0]) / 2;
+        const my = (points[i][1] + points[i+1][1]) / 2;
+        ctx.quadraticCurveTo(points[i][0], points[i][1], mx, my);
+      } else {
+        ctx.lineTo(points[i][0], points[i][1]);
+      }
+    }
+    ctx.strokeStyle = color;
+    ctx.lineWidth = isSea ? 2.5 : 3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 6;
+
+    if (isSea) {
+      ctx.setLineDash([8, 4]);
+      ctx.lineDashOffset = seaDashOffset;
+    } else {
+      ctx.setLineDash([]);
+    }
+
+    ctx.globalAlpha = 0.7;
+    ctx.stroke();
+
+    // Crisp line on top (no glow)
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 0.9;
+    ctx.lineWidth = isSea ? 2 : 2.5;
+    ctx.stroke();
+
+    ctx.setLineDash([]);
+    ctx.restore();
+  });
+}
+
+// ===================== ANIMATED FLOW DOTS ON ROUTES =====================
+function drawRouteDots() {
+  const now = Date.now();
+  routeSegments.forEach((seg, i) => {
+    const from = allMainById[seg.from];
+    const to = allMainById[seg.to];
+    if (!from || !to) return;
+
+    const isSea = seg.type === 'Паром' || seg.type === 'Морской';
+    const color = isSea ? SEA_COLOR : RAIL_COLOR;
+    const interp = d3.geoInterpolate([from.lon, from.lat], [to.lon, to.lat]);
+
+    // Multiple flow dots per segment
+    const dotCount = 3;
+    const dur = 4000 + i * 400;
+    for (let d = 0; d < dotCount; d++) {
+      const phase = d / dotCount;
+      const t = ((now % dur) / dur + phase) % 1;
+      const pos = interp(t);
+
+      if (isVisible(pos[0], pos[1])) {
+        const p = projection(pos);
+        if (p) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(p[0], p[1], 2.5, 0, Math.PI * 2);
+          ctx.fillStyle = color;
+          ctx.shadowColor = color;
+          ctx.shadowBlur = 6;
+          ctx.globalAlpha = 0.85;
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+    }
+  });
+}
+
+// ===================== ROUTE SEGMENT LABELS =====================
+function drawRouteLabels() {
+  // Only show when zoomed in enough
+  if (currentScale < initialScale * 1.5) return;
+
+  ctx.save();
+  ctx.font = '500 8px Montserrat, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  routeSegments.forEach(seg => {
+    const from = allMainById[seg.from];
+    const to = allMainById[seg.to];
+    if (!from || !to) return;
+
+    const midLon = (from.lon + to.lon) / 2;
+    const midLat = (from.lat + to.lat) / 2;
+    if (!isVisible(midLon, midLat)) return;
+    const p = projection([midLon, midLat]);
+    if (!p) return;
+
+    // Extract distance from segment data
+    const distText = seg.dist || '';
+    if (!distText) return;
+
+    const textW = ctx.measureText(distText).width;
+    const pillW = textW + 12;
+    const pillH = 16;
+    const px = p[0];
+    const py = p[1] - 12;
+
+    // Pill background
+    ctx.fillStyle = 'rgba(15,23,42,0.85)';
+    ctx.beginPath();
+    const r = 4;
+    ctx.roundRect(px - pillW/2, py - pillH/2, pillW, pillH, r);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+
+    // Text
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.fillText(distText, px, py);
+  });
+  ctx.restore();
+}
+
+// ===================== LABEL ANTI-COLLISION =====================
+function labelFits(placedRects, x, y, w, h) {
+  const rect = {x, y, w, h};
+  for (const pr of placedRects) {
+    if (rect.x < pr.x + pr.w && rect.x + rect.w > pr.x &&
+        rect.y < pr.y + pr.h && rect.y + rect.h > pr.y) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// ===================== DRAW CITIES =====================
+function drawCities() {
+  const placedRects = [];
+  const now = Date.now();
+  const pulsePhase = (Math.sin(now * 0.003) + 1) / 2; // 0..1 pulsing
+
+  // Sort: draw tier3 first, then tier2, then tier1 on top
+  const allCities = [...contextCities, ...mainCities];
+  // Re-sort so hubs and tier1 are drawn last (on top)
+  allCities.sort((a, b) => {
+    const tierA = a.type === 'context' ? 0 : tier1Ids.has(a.id) ? 2 : 1;
+    const tierB = b.type === 'context' ? 0 : tier1Ids.has(b.id) ? 2 : 1;
+    return tierA - tierB;
+  });
+
+  allCities.forEach(city => {
+    if (!isVisible(city.lon, city.lat)) return;
+    const p = projection([city.lon, city.lat]);
+    if (!p) return;
+
+    const isCtx = city.type === 'context';
+    const isTier1 = tier1Ids.has(city.id);
+    const isTier2 = tier2Ids.has(city.id);
+    const color = typeColors[city.type];
+
+    // --- Tier 3: Context cities ---
+    if (isCtx) {
+      // Only show when context layer is relevant (routes on)
+      const r = 2;
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.fill();
+
+      // Label: very faint, only at zoom
+      if (currentScale > initialScale * 1.3) {
+        ctx.save();
+        ctx.font = '400 7px Montserrat, sans-serif';
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.textBaseline = 'middle';
+        const lx = p[0] + r + 4;
+        const ly = p[1];
+        const tw = ctx.measureText(city.name).width;
+        if (labelFits(placedRects, lx, ly - 5, tw, 10)) {
+          ctx.fillText(city.name, lx, ly);
+          placedRects.push({x: lx, y: ly - 5, w: tw, h: 10});
+        }
+        ctx.restore();
+      }
+      return;
+    }
+
+    // --- Tier 1: Major Hubs ---
+    if (isTier1) {
+      const r = 7;
+
+      // Pulsing glow ring
+      ctx.save();
+      ctx.beginPath();
+      const glowR = r + 4 + pulsePhase * 4;
+      ctx.arc(p[0], p[1], glowR, 0, Math.PI * 2);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      ctx.globalAlpha = 0.15 + pulsePhase * 0.15;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 10;
+      ctx.stroke();
+      ctx.restore();
+
+      // Solid dot
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], r, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 8;
+      ctx.fill();
+      ctx.restore();
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], r, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Label with background pill
+      ctx.save();
+      ctx.font = '700 11px Montserrat, sans-serif';
+      ctx.textBaseline = 'middle';
+      const tw = ctx.measureText(city.name).width;
+      const pillPad = 6;
+      const pillH = 18;
+
+      // Try right, left, below, above
+      const positions = [
+        {x: p[0] + r + 6, y: p[1]},
+        {x: p[0] - r - 6 - tw, y: p[1]},
+        {x: p[0] - tw/2, y: p[1] + r + 12},
+        {x: p[0] - tw/2, y: p[1] - r - 12}
+      ];
+
+      let placed = false;
+      for (const pos of positions) {
+        if (labelFits(placedRects, pos.x - pillPad, pos.y - pillH/2, tw + pillPad*2, pillH)) {
+          // Background pill
+          ctx.fillStyle = 'rgba(15,23,42,0.7)';
+          ctx.beginPath();
+          ctx.roundRect(pos.x - pillPad, pos.y - pillH/2, tw + pillPad*2, pillH, 4);
+          ctx.fill();
+
+          // Text
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(city.name, pos.x, pos.y);
+          placedRects.push({x: pos.x - pillPad, y: pos.y - pillH/2, w: tw + pillPad*2, h: pillH});
+          placed = true;
+          break;
+        }
+      }
+      ctx.restore();
+      return;
+    }
+
+    // --- Tier 2: Corridor cities ---
+    {
+      const r = 4;
+
+      // Solid dot
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], r, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+
+      // Label: show when zoomed in or non-overlapping
+      const showLabel = currentScale > initialScale * 1.0;
+      if (showLabel) {
+        ctx.save();
+        ctx.font = '500 9px Montserrat, sans-serif';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        const tw = ctx.measureText(city.name).width;
+        const lh = 12;
+
+        const positions = [
+          {x: p[0] + r + 5, y: p[1]},
+          {x: p[0] - r - 5 - tw, y: p[1]},
+          {x: p[0] - tw/2, y: p[1] + r + 8},
+          {x: p[0] - tw/2, y: p[1] - r - 8}
+        ];
+
+        for (const pos of positions) {
+          if (labelFits(placedRects, pos.x, pos.y - lh/2, tw, lh)) {
+            ctx.fillText(city.name, pos.x, pos.y);
+            placedRects.push({x: pos.x, y: pos.y - lh/2, w: tw, h: lh});
+            break;
+          }
+        }
+        ctx.restore();
+      }
+    }
+  });
+}
+
+// ===================== DRAW SHIPS (Layer 2) =====================
+function drawShips() {
+  const now = Date.now();
+  ships.forEach((ship, i) => {
+    const dur = 15000 + i * 3000;
+    const t = (now % dur) / dur;
+    const lon = ship.fromLon + (ship.toLon - ship.fromLon) * t;
+    const lat = ship.fromLat + (ship.toLat - ship.fromLat) * t;
+
+    if (!isVisible(lon, lat)) return;
+    const p = projection([lon, lat]);
+    if (!p) return;
+
+    // Direction angle
+    const nextT = Math.min(1, t + 0.02);
+    const nLon = ship.fromLon + (ship.toLon - ship.fromLon) * nextT;
+    const nLat = ship.fromLat + (ship.toLat - ship.fromLat) * nextT;
+    const np = projection([nLon, nLat]);
+    let angle = 0;
+    if (np) angle = Math.atan2(np[1] - p[1], np[0] - p[0]);
+
+    // --- Wake trail: 2 thin parallel fading lines ---
+    ctx.save();
+    const wakeSteps = 5;
+    for (let w = 0; w < wakeSteps; w++) {
+      const wt = Math.max(0, t - 0.005 * (w + 1));
+      const wLon = ship.fromLon + (ship.toLon - ship.fromLon) * wt;
+      const wLat = ship.fromLat + (ship.toLat - ship.fromLat) * wt;
+      if (!isVisible(wLon, wLat)) continue;
+      const wp = projection([wLon, wLat]);
+      if (!wp) continue;
+
+      const alpha = 0.3 * (1 - w / wakeSteps);
+      // Upper wake line
+      const offset = 3;
+      const perpX = -Math.sin(angle) * offset;
+      const perpY = Math.cos(angle) * offset;
+
+      ctx.beginPath();
+      ctx.moveTo(wp[0] + perpX, wp[1] + perpY);
+      const nextWt = Math.max(0, t - 0.005 * w);
+      const nwLon = ship.fromLon + (ship.toLon - ship.fromLon) * nextWt;
+      const nwLat = ship.fromLat + (ship.toLat - ship.fromLat) * nextWt;
+      if (isVisible(nwLon, nwLat)) {
+        const nwp = projection([nwLon, nwLat]);
+        if (nwp) {
+          ctx.lineTo(nwp[0] + perpX, nwp[1] + perpY);
+          ctx.strokeStyle = `rgba(6,182,212,${alpha})`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          // Lower wake line
+          ctx.beginPath();
+          ctx.moveTo(wp[0] - perpX, wp[1] - perpY);
+          ctx.lineTo(nwp[0] - perpX, nwp[1] - perpY);
+          ctx.stroke();
+        }
+      }
+    }
+    ctx.restore();
+
+    // --- Draw ship shape (boat outline) ---
+    ctx.save();
+    ctx.translate(p[0], p[1]);
+    ctx.rotate(angle);
+    ctx.beginPath();
+    ctx.moveTo(8, 0);
+    ctx.lineTo(5, -3);
+    ctx.lineTo(-6, -3);
+    ctx.lineTo(-8, 0);
+    ctx.lineTo(-6, 3);
+    ctx.lineTo(5, 3);
+    ctx.closePath();
+    ctx.fillStyle = SEA_COLOR;
+    ctx.shadowColor = SEA_COLOR;
+    ctx.shadowBlur = 8;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+
+    // Ship name label
+    ctx.save();
+    ctx.font = '500 8px Montserrat, sans-serif';
+    ctx.fillStyle = 'rgba(6,182,212,0.8)';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(ship.name, p[0] + 12, p[1] - 4);
+    ctx.restore();
+
+    // Store position for hit testing
+    ship._screenX = p[0];
+    ship._screenY = p[1];
+  });
+}
+
+// ===================== DRAW PLANES (Layer 3) =====================
+function drawPlanes() {
+  const now = Date.now();
+  planes.forEach((plane, i) => {
+    const dur = 12000 + i * 2500;
+    const t = (now % dur) / dur;
+
+    // Great circle interpolation
+    const interp = d3.geoInterpolate([plane.fromLon, plane.fromLat], [plane.toLon, plane.toLat]);
+    const pos = interp(t);
+    const lon = pos[0], lat = pos[1];
+
+    if (!isVisible(lon, lat)) return;
+    const p = projection([lon, lat]);
+    if (!p) return;
+
+    // Direction
+    const nextPos = interp(Math.min(1, t + 0.02));
+    const np = projection(nextPos);
+    let angle = 0;
+    if (np && isVisible(nextPos[0], nextPos[1])) angle = Math.atan2(np[1] - p[1], np[0] - p[0]);
+
+    // --- Contrail: thin fading line, 5 points ---
+    ctx.save();
+    ctx.beginPath();
+    let started = false;
+    const trailSteps = 5;
+    for (let s = 0; s <= trailSteps; s++) {
+      const st = Math.max(0, t - 0.08) + (t - Math.max(0, t - 0.08)) * (s / trailSteps);
+      const sp = interp(st);
+      if (isVisible(sp[0], sp[1])) {
+        const spp = projection(sp);
+        if (spp) {
+          if (!started) { ctx.moveTo(spp[0], spp[1]); started = true; }
+          else ctx.lineTo(spp[0], spp[1]);
+        }
+      }
+    }
+    const trailGrad = ctx.createLinearGradient(
+      p[0] - Math.cos(angle) * 40, p[1] - Math.sin(angle) * 40,
+      p[0], p[1]
+    );
+    trailGrad.addColorStop(0, 'rgba(167,139,250,0)');
+    trailGrad.addColorStop(1, 'rgba(167,139,250,0.3)');
+    ctx.strokeStyle = trailGrad;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.restore();
+
+    // --- Draw plane shape (chevron/arrow from above) ---
+    ctx.save();
+    ctx.translate(p[0], p[1]);
+    ctx.rotate(angle);
+
+    // Body
+    ctx.beginPath();
+    ctx.moveTo(10, 0);        // nose
+    ctx.lineTo(3, -1.2);      // front body top
+    ctx.lineTo(-3, -1.2);     // rear body top
+    // Wings
+    ctx.lineTo(-1, -6);       // wing tip top
+    ctx.lineTo(-4, -5);       // wing back top
+    ctx.lineTo(-5, -1.2);     // wing join top
+    // Tail
+    ctx.lineTo(-8, -3);       // tail top
+    ctx.lineTo(-9, -2);       // tail end top
+    ctx.lineTo(-7, 0);        // tail center
+    ctx.lineTo(-9, 2);        // tail end bottom
+    ctx.lineTo(-8, 3);        // tail bottom
+    ctx.lineTo(-5, 1.2);      // wing join bottom
+    ctx.lineTo(-4, 5);        // wing back bottom
+    ctx.lineTo(-1, 6);        // wing tip bottom
+    ctx.lineTo(-3, 1.2);      // rear body bottom
+    ctx.lineTo(3, 1.2);       // front body bottom
+    ctx.closePath();
+    ctx.fillStyle = AIR_COLOR;
+    ctx.shadowColor = AIR_COLOR;
+    ctx.shadowBlur = 8;
+    ctx.globalAlpha = 0.9;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+
+    // Flight number label
+    ctx.save();
+    ctx.font = '500 8px Montserrat, sans-serif';
+    ctx.fillStyle = 'rgba(167,139,250,0.8)';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(plane.flight, p[0] + 12, p[1] - 4);
+    ctx.restore();
+
+    // --- Air route dashed arc (full route preview) ---
+    ctx.save();
+    ctx.beginPath();
+    const arcSteps = 40;
+    let arcStarted = false;
+    for (let s = 0; s <= arcSteps; s++) {
+      const ap = interp(s / arcSteps);
+      if (isVisible(ap[0], ap[1])) {
+        const sp = projection(ap);
+        if (sp) {
+          if (!arcStarted) { ctx.moveTo(sp[0], sp[1]); arcStarted = true; }
+          else ctx.lineTo(sp[0], sp[1]);
+        }
+      }
+    }
+    ctx.strokeStyle = 'rgba(167,139,250,0.12)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 6]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+
+    // Store for hit testing
+    plane._screenX = p[0];
+    plane._screenY = p[1];
+  });
+}
+
+// ===================== HELPERS =====================
+function isVisible(lon, lat) {
+  const r = projection.rotate();
+  const dist = d3.geoDistance([lon, lat], [-r[0], -r[1]]);
+  return dist < Math.PI / 2;
+}
+
+// ===================== INTERACTIONS =====================
+
+// Drag
+let dragStart = null;
+let isDragging = false;
+
+canvas.addEventListener('pointerdown', e => {
+  dragStart = { x: e.clientX, y: e.clientY, r: projection.rotate().slice() };
+  isDragging = false;
+  stopAutoRotate();
+});
+
+canvas.addEventListener('pointermove', e => {
+  // Tooltip for hoverable items
+  if (!dragStart) {
+    handleHover(e);
+    return;
+  }
+  isDragging = true;
+  const dx = e.clientX - dragStart.x;
+  const dy = e.clientY - dragStart.y;
+  const k = 0.4 / (currentScale / initialScale);
+  projection.rotate([
+    dragStart.r[0] + dx * k,
+    Math.max(-60, Math.min(60, dragStart.r[1] - dy * k))
+  ]);
+});
+
+canvas.addEventListener('pointerup', e => {
+  if (!isDragging && dragStart) {
+    handleClick(e);
+  }
+  dragStart = null;
+  isDragging = false;
+  clearTimeout(rotateTimer);
+  rotateTimer = setTimeout(startAutoRotate, 8000);
+});
+
+canvas.addEventListener('pointerleave', () => {
+  dragStart = null;
+  hideTooltip();
+});
+
+// Zoom
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  stopAutoRotate();
+  const factor = e.deltaY > 0 ? 0.92 : 1.08;
+  currentScale = Math.max(initialScale * 0.4, Math.min(initialScale * 6, currentScale * factor));
+  projection.scale(currentScale);
+  clearTimeout(rotateTimer);
+  rotateTimer = setTimeout(startAutoRotate, 8000);
+}, { passive: false });
+
+// Zoom buttons
+document.getElementById('zoomIn').onclick = () => {
+  currentScale = Math.min(initialScale * 6, currentScale * 1.3);
+  projection.scale(currentScale);
+};
+document.getElementById('zoomOut').onclick = () => {
+  currentScale = Math.max(initialScale * 0.4, currentScale / 1.3);
+  projection.scale(currentScale);
+};
+document.getElementById('resetView').onclick = () => {
+  currentScale = initialScale;
+  projection.scale(initialScale).rotate([-55, -42]);
+  projection.translate([W / 2, H / 2]);
+  hideInfoSection();
+  startAutoRotate();
+};
+
+// ===================== HIT TESTING =====================
+function getCanvasCoords(e) {
+  const rect = canvas.getBoundingClientRect();
+  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+
+function handleClick(e) {
+  const { x, y } = getCanvasCoords(e);
+
+  // Check ships
+  if (showShips) {
+    for (const ship of ships) {
+      if (ship._screenX !== undefined) {
+        const dx = x - ship._screenX, dy = y - ship._screenY;
+        if (dx * dx + dy * dy < 200) {
+          showShipInfo(ship);
+          return;
+        }
+      }
+    }
+  }
+
+  // Check planes
+  if (showPlanes) {
+    for (const plane of planes) {
+      if (plane._screenX !== undefined) {
+        const dx = x - plane._screenX, dy = y - plane._screenY;
+        if (dx * dx + dy * dy < 200) {
+          showPlaneInfo(plane);
+          return;
+        }
+      }
+    }
+  }
+
+  // Check cities
+  if (showRoutes) {
+    for (const city of mainCities) {
+      if (!isVisible(city.lon, city.lat)) continue;
+      const p = projection([city.lon, city.lat]);
+      if (!p) continue;
+      const dx = x - p[0], dy = y - p[1];
+      if (dx * dx + dy * dy < 150) {
+        showCityInfo(city);
+        zoomToCity(city);
+        return;
+      }
+    }
+
+    // Check route segments
+    for (const seg of routeSegments) {
+      const from = allMainById[seg.from];
+      const to = allMainById[seg.to];
+      if (!from || !to) continue;
+      if (!isVisible(from.lon, from.lat) && !isVisible(to.lon, to.lat)) continue;
+      const pf = projection([from.lon, from.lat]);
+      const pt = projection([to.lon, to.lat]);
+      if (!pf || !pt) continue;
+      const dist = pointToSegDist(x, y, pf[0], pf[1], pt[0], pt[1]);
+      if (dist < 10) {
+        showSegmentInfo(seg);
+        return;
+      }
+    }
+  }
+
+  // Click empty -> hide info
+  hideInfoSection();
+}
+
+function pointToSegDist(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) return Math.hypot(px - x1, py - y1);
+  let t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+}
+
+function handleHover(e) {
+  const { x, y } = getCanvasCoords(e);
+  let found = false;
+
+  // Cities
+  if (showRoutes) {
+    for (const city of mainCities) {
+      if (!isVisible(city.lon, city.lat)) continue;
+      const p = projection([city.lon, city.lat]);
+      if (!p) continue;
+      const dx = x - p[0], dy = y - p[1];
+      if (dx * dx + dy * dy < 150) {
+        const country = city.type === 'hub' ? 'Казахстан' : '';
+        showTooltipAt(e.clientX, e.clientY, [
+          {text: city.name, style: 'title'},
+          {text: (country ? country + ' · ' : '') + typeLabels[city.type], style: 'subtitle'},
+          {text: city.role || '', style: 'detail'}
+        ]);
+        canvas.style.cursor = 'pointer';
+        found = true;
+        break;
+      }
+    }
+
+    // Route segments
+    if (!found) {
+      for (const seg of routeSegments) {
+        const from = allMainById[seg.from];
+        const to = allMainById[seg.to];
+        if (!from || !to) continue;
+        if (!isVisible(from.lon, from.lat) && !isVisible(to.lon, to.lat)) continue;
+        const pf = projection([from.lon, from.lat]);
+        const pt = projection([to.lon, to.lat]);
+        if (!pf || !pt) continue;
+        const dist = pointToSegDist(x, y, pf[0], pf[1], pt[0], pt[1]);
+        if (dist < 12) {
+          showTooltipAt(e.clientX, e.clientY, [
+            {text: seg.type + ' · ' + seg.gauge + ' · ' + seg.dist, style: 'title'},
+            {text: (from ? from.name : seg.from) + ' → ' + (to ? to.name : seg.to), style: 'subtitle'}
+          ]);
+          canvas.style.cursor = 'pointer';
+          found = true;
+          break;
+        }
+      }
+    }
+  }
+
+  // Ships
+  if (!found && showShips) {
+    for (const ship of ships) {
+      if (ship._screenX !== undefined) {
+        const dx = x - ship._screenX, dy = y - ship._screenY;
+        if (dx * dx + dy * dy < 200) {
+          showTooltipAt(e.clientX, e.clientY, [
+            {text: ship.name, style: 'title'},
+            {text: ship.from + ' → ' + ship.to + ' · ' + ship.cargo, style: 'subtitle'},
+            {text: ship.tonnage + ' · ' + ship.speed + ' узлов', style: 'detail'}
+          ]);
+          canvas.style.cursor = 'pointer';
+          found = true;
+          break;
+        }
+      }
+    }
+  }
+
+  // Planes
+  if (!found && showPlanes) {
+    for (const plane of planes) {
+      if (plane._screenX !== undefined) {
+        const dx = x - plane._screenX, dy = y - plane._screenY;
+        if (dx * dx + dy * dy < 200) {
+          showTooltipAt(e.clientX, e.clientY, [
+            {text: plane.flight, style: 'title'},
+            {text: plane.from + ' → ' + plane.to, style: 'subtitle'},
+            {text: plane.cargo + ' · ' + plane.alt, style: 'detail'}
+          ]);
+          canvas.style.cursor = 'pointer';
+          found = true;
+          break;
+        }
+      }
+    }
+  }
+
+  if (!found) {
+    hideTooltip();
+    canvas.style.cursor = isDragging ? 'grabbing' : 'grab';
+  }
+}
+
+// ===================== TOOLTIP (multi-line frosted glass) =====================
+function showTooltipAt(cx, cy, lines) {
+  const rect = wrap.getBoundingClientRect();
+  // lines is array of {text, style} — style: 'title', 'subtitle', 'detail'
+  if (typeof lines === 'string') {
+    lines = [{text: lines, style: 'title'}];
+  }
+
+  let html = '';
+  lines.forEach(line => {
+    if (!line.text) return;
+    let style = '';
+    if (line.style === 'title') {
+      style = 'font-weight:700;font-size:11px;color:#fff;';
+    } else if (line.style === 'subtitle') {
+      style = 'font-weight:500;font-size:9px;color:rgba(198,164,109,0.9);margin-top:2px;';
+    } else if (line.style === 'detail') {
+      style = 'font-weight:400;font-size:9px;color:rgba(255,255,255,0.5);margin-top:2px;';
+    }
+    html += `<div style="${style}">${line.text}</div>`;
+  });
+
+  tooltip.innerHTML = html;
+  tooltip.classList.add('visible');
+  tooltip.style.left = (cx - rect.left + 14) + 'px';
+  tooltip.style.top = (cy - rect.top - 10) + 'px';
+}
+function hideTooltip() {
+  tooltip.classList.remove('visible');
+}
+
+// ===================== AUTO ROTATE =====================
+function startAutoRotate() {
+  autoRotate = true;
+}
+function stopAutoRotate() {
+  autoRotate = false;
+  clearTimeout(rotateTimer);
+}
+
+// Integrate rotation into render loop
+let lastRotTime = 0;
+const origDraw = draw;
+draw = function() {
+  if (autoRotate) {
+    const r = projection.rotate();
+    projection.rotate([r[0] + 0.06, r[1]]);
+  }
+  origDraw();
+};
+
+// ===================== ZOOM TO CITY =====================
+function zoomToCity(city) {
+  stopAutoRotate();
+  const targetRotate = [-city.lon, -city.lat];
+  const targetScale = initialScale * 2.5;
+  const r0 = projection.rotate().slice();
+  const s0 = currentScale;
+  const start = Date.now();
+  const dur = 800;
+
+  function ease(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
+
+  function anim() {
+    const t = Math.min(1, (Date.now() - start) / dur);
+    const e = ease(t);
+    projection.rotate([
+      r0[0] + (targetRotate[0] - r0[0]) * e,
+      r0[1] + (targetRotate[1] - r0[1]) * e
+    ]);
+    currentScale = s0 + (targetScale - s0) * e;
+    projection.scale(currentScale);
+    if (t < 1) requestAnimationFrame(anim);
+    else {
+      clearTimeout(rotateTimer);
+      rotateTimer = setTimeout(startAutoRotate, 10000);
+    }
+  }
+  anim();
+}
+
+// ===================== PANEL: TIMELINE =====================
+function buildTimeline() {
+  const timelineOrder = ['shanghai','xian','urumqi','khorgos','dostyk','almaty','astana','atyrau','aktau','baku','tbilisi','poti','batumi','kars','istanbul','constanta','rotterdam'];
+  const container = document.getElementById('timeline');
+  let html = '';
+  timelineOrder.forEach(id => {
+    const city = allMainById[id];
+    if (!city) return;
+    html += `<div class="tl-item" onclick="handleTimelineClick('${id}')">
+      <div class="tl-dot ${city.type}"></div>
+      <div class="tl-name">${city.name}</div>
+      <div class="tl-role">${city.role || city.desc.substring(0, 50)}</div>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function handleTimelineClick(id) {
+  const city = allMainById[id];
+  if (!city) return;
+  showCityInfo(city);
+  zoomToCity(city);
+}
+
+// ===================== PANEL: INFO SECTION =====================
+function showInfoSection(title) {
+  const sec = document.getElementById('infoSection');
+  sec.style.display = '';
+  document.getElementById('infoSectionTitle').textContent = title;
+  // Ensure section is open
+  const head = sec.querySelector('.sec-head');
+  const body = sec.querySelector('.sec-body');
+  head.classList.add('open');
+  body.classList.add('open');
+  // Scroll into view
+  sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function hideInfoSection() {
+  document.getElementById('infoSection').style.display = 'none';
+}
+
+function showCityInfo(city) {
+  showInfoSection(city.name);
+  const segs = routeSegments.filter(s => s.from === city.id || s.to === city.id);
+  let segHtml = '';
+  if (segs.length) {
+    segHtml = '<div style="margin-top:12px"><div style="font-size:8px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;font-weight:700">Связанные маршруты</div>';
+    segs.forEach(s => {
+      const from = allMainById[s.from];
+      const to = allMainById[s.to];
+      segHtml += `<div class="detail-row" style="cursor:pointer" onclick="showSegmentInfo(routeSegments.find(r=>r.from==='${s.from}'&&r.to==='${s.to}'))">
+        <div class="dlabel">${from?from.name:s.from} → ${to?to.name:s.to}</div>
+        <div class="dval">${s.type} · ${s.dist}</div>
+      </div>`;
+    });
+    segHtml += '</div>';
+  }
+
+  document.getElementById('infoContent').innerHTML = `
+    <div class="info-card">
+      <div class="info-badge ${city.type}"><div class="bdot"></div>${typeLabels[city.type]}</div>
+      <h3 class="info-title">${city.name}</h3>
+      <p class="info-desc">${city.desc}</p>
+      ${city.details.map(d => `<div class="detail-row"><div class="dlabel">${d.label}</div><div class="dval">${d.value}</div></div>`).join('')}
+      ${segHtml}
+    </div>`;
+}
+
+function showSegmentInfo(seg) {
+  if (!seg) return;
+  const from = allMainById[seg.from];
+  const to = allMainById[seg.to];
+  showInfoSection('Сегмент маршрута');
+
+  document.getElementById('infoContent').innerHTML = `
+    <div class="info-card">
+      <div class="seg-from-to">
+        <span class="seg-city">${from?from.name:seg.from}</span>
+        <span class="seg-arrow">→</span>
+        <span class="seg-city">${to?to.name:seg.to}</span>
+      </div>
+      <div class="seg-type-badge">${seg.type}</div>
+      <div class="detail-row"><div class="dlabel">Описание</div><div class="dval">${seg.info}</div></div>
+      <div class="detail-row"><div class="dlabel">Тип транспорта</div><div class="dval">${seg.type}</div></div>
+      <div class="detail-row"><div class="dlabel">Колея / Формат</div><div class="dval">${seg.gauge}</div></div>
+      <div class="detail-row"><div class="dlabel">Расстояние</div><div class="dval">${seg.dist}</div></div>
+      <div style="margin-top:12px;display:flex;gap:6px">
+        ${from?`<button onclick="handleTimelineClick('${seg.from}')" style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#fff;cursor:pointer;font-family:Montserrat;font-size:10px;font-weight:600">${from.name}</button>`:''}
+        ${to?`<button onclick="handleTimelineClick('${seg.to}')" style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#fff;cursor:pointer;font-family:Montserrat;font-size:10px;font-weight:600">${to.name}</button>`:''}
+      </div>
+    </div>`;
+}
+
+function showShipInfo(ship) {
+  showInfoSection(ship.name);
+  const eta = Math.round(350 / (ship.speed * 1.852));
+  document.getElementById('infoContent').innerHTML = `
+    <div class="info-card transport-info">
+      <div class="info-badge port"><div class="bdot"></div>Судно</div>
+      <div class="ti-name">${ship.name}</div>
+      <div class="ti-route">${ship.from} → ${ship.to}</div>
+      <div class="detail-row"><div class="dlabel">Груз</div><div class="dval">${ship.cargo}</div></div>
+      <div class="detail-row"><div class="dlabel">Тоннаж</div><div class="dval">${ship.tonnage}</div></div>
+      <div class="detail-row"><div class="dlabel">Скорость</div><div class="dval">${ship.speed} узлов</div></div>
+      <div class="detail-row"><div class="dlabel">ETA</div><div class="dval">~${eta} ч</div></div>
+    </div>`;
+}
+
+function showPlaneInfo(plane) {
+  showInfoSection(plane.flight);
+  document.getElementById('infoContent').innerHTML = `
+    <div class="info-card transport-info">
+      <div class="info-badge hub"><div class="bdot"></div>Авиарейс</div>
+      <div class="ti-name">${plane.flight}</div>
+      <div class="ti-route">${plane.from} → ${plane.to}</div>
+      <div class="detail-row"><div class="dlabel">Груз</div><div class="dval">${plane.cargo}</div></div>
+      <div class="detail-row"><div class="dlabel">Высота</div><div class="dval">${plane.alt}</div></div>
+    </div>`;
+}
+
+// Make functions global
+window.handleTimelineClick = handleTimelineClick;
+window.showSegmentInfo = showSegmentInfo;
+window.routeSegments = routeSegments;
+
+// ===================== DATA BARS =====================
+function buildDataBars() {
+  const data = [0.8, 1.1, 0.9, 1.5, 2.1, 3.2, 4.5];
+  const max = 5;
+  const cont = document.getElementById('doBars');
+  data.forEach((v, i) => {
+    const bar = document.createElement('div');
+    bar.className = 'do-bar' + (i === data.length - 1 ? ' hl' : '');
+    bar.style.height = (v / max * 100) + '%';
+    bar.title = ['2018','2019','2020','2021','2022','2023','2024'][i] + ': ' + v + ' млн т';
+    cont.appendChild(bar);
+  });
+}
+
+// ===================== RESIZE =====================
+window.addEventListener('resize', () => {
+  resizeCanvas();
+  projection.translate([W / 2, H / 2]);
+});
+
+// ===================== MOBILE PANEL TOGGLE =====================
+document.querySelector('.panel-header').addEventListener('click', () => {
+  if (window.innerWidth <= 900) {
+    document.getElementById('panel').classList.toggle('collapsed');
+  }
+});
+
+// ===================== REAL DATA API INTEGRATIONS =====================
+
+// --- Helper: add LIVE dot next to overlay title ---
+function addLiveDot(parentEl) {
+  if (!parentEl) return;
+  const titleEl = parentEl.querySelector('.do-label') || parentEl.querySelector('[style*="font-weight:700"]');
+  if (titleEl && !titleEl.querySelector('.live-dot')) {
+    const dot = document.createElement('span');
+    dot.className = 'live-dot';
+    dot.textContent = 'LIVE';
+    titleEl.appendChild(dot);
+  }
+}
+
+// ===================== 1. OpenSky Network — Real Aircraft Data =====================
+let realPlanes = [];
+let planesInterval = null;
+
+async function fetchRealPlanes() {
+  try {
+    const resp = await fetch('https://opensky-network.org/api/states/all?lamin=25&lomin=20&lamax=60&lomax=130');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    if (data.states) {
+      realPlanes = data.states
+        .filter(s => s[6] && s[5] && !s[8]) // has lat, lon, not on ground
+        .slice(0, 30)
+        .map(s => ({
+          callsign: (s[1] || '').trim(),
+          country: s[2],
+          lon: s[5],
+          lat: s[6],
+          alt: s[7] ? Math.round(s[7]) : 0,
+          speed: s[9] ? Math.round(s[9] * 3.6) : 0, // m/s to km/h
+          heading: s[10] || 0,
+          _screenX: undefined,
+          _screenY: undefined
+        }));
+      // Update top-right overlay with real count
+      updatePlaneCountOverlay();
+      console.log('OpenSky: loaded ' + realPlanes.length + ' aircraft');
+    }
+  } catch(e) {
+    console.log('OpenSky API error, using fallback:', e.message);
+    realPlanes = [];
+  }
+}
+
+function updatePlaneCountOverlay() {
+  const el = document.getElementById('doTopRight');
+  if (!el) return;
+  if (realPlanes.length > 0) {
+    el.querySelector('.do-val').textContent = realPlanes.length + ' самолётов';
+    el.querySelector('.do-badge').textContent = 'в воздухе';
+    el.querySelector('.do-label').innerHTML = 'OpenSky Network · реальные данные';
+    addLiveDot(el);
+  }
+}
+
+// Override drawPlanes to support real aircraft data
+const origDrawPlanes = drawPlanes;
+drawPlanes = function() {
+  if (realPlanes.length > 0) {
+    drawRealPlanes();
+  } else {
+    origDrawPlanes();
+  }
+};
+
+function drawRealPlanes() {
+  realPlanes.forEach((rp, i) => {
+    if (!isVisible(rp.lon, rp.lat)) return;
+    const p = projection([rp.lon, rp.lat]);
+    if (!p) return;
+
+    const headingRad = (rp.heading - 90) * Math.PI / 180; // convert to canvas angle
+
+    // Draw plane triangle
+    ctx.save();
+    ctx.translate(p[0], p[1]);
+    ctx.rotate(headingRad);
+
+    // Same plane shape as original
+    ctx.beginPath();
+    ctx.moveTo(10, 0);        // nose
+    ctx.lineTo(3, -1.2);
+    ctx.lineTo(-3, -1.2);
+    ctx.lineTo(-1, -6);       // wing tip top
+    ctx.lineTo(-4, -5);
+    ctx.lineTo(-5, -1.2);
+    ctx.lineTo(-8, -3);       // tail top
+    ctx.lineTo(-9, -2);
+    ctx.lineTo(-7, 0);
+    ctx.lineTo(-9, 2);        // tail bottom
+    ctx.lineTo(-8, 3);
+    ctx.lineTo(-5, 1.2);
+    ctx.lineTo(-4, 5);        // wing tip bottom
+    ctx.lineTo(-1, 6);
+    ctx.lineTo(-3, 1.2);
+    ctx.lineTo(3, 1.2);
+    ctx.closePath();
+    ctx.fillStyle = AIR_COLOR;
+    ctx.shadowColor = AIR_COLOR;
+    ctx.shadowBlur = 8;
+    ctx.globalAlpha = 0.9;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+
+    // Callsign label
+    if (rp.callsign) {
+      ctx.save();
+      ctx.font = '500 7px Montserrat, sans-serif';
+      ctx.fillStyle = 'rgba(167,139,250,0.7)';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(rp.callsign, p[0] + 12, p[1] - 3);
+      ctx.restore();
+    }
+
+    // Store for hit testing
+    rp._screenX = p[0];
+    rp._screenY = p[1];
+  });
+}
+
+// Override handleClick and handleHover to support real planes
+const origHandleClick = handleClick;
+handleClick = function(e) {
+  const { x, y } = getCanvasCoords(e);
+
+  // Check real planes first if active
+  if (showPlanes && realPlanes.length > 0) {
+    for (const rp of realPlanes) {
+      if (rp._screenX !== undefined) {
+        const dx = x - rp._screenX, dy = y - rp._screenY;
+        if (dx * dx + dy * dy < 200) {
+          showRealPlaneInfo(rp);
+          return;
+        }
+      }
+    }
+  }
+
+  origHandleClick(e);
+};
+
+const origHandleHover = handleHover;
+handleHover = function(e) {
+  const { x, y } = getCanvasCoords(e);
+
+  // Check real planes
+  if (showPlanes && realPlanes.length > 0) {
+    for (const rp of realPlanes) {
+      if (rp._screenX !== undefined) {
+        const dx = x - rp._screenX, dy = y - rp._screenY;
+        if (dx * dx + dy * dy < 200) {
+          showTooltipAt(e.clientX, e.clientY, [
+            {text: rp.callsign || 'Unknown', style: 'title'},
+            {text: rp.country + ' · ' + rp.alt + 'м', style: 'subtitle'},
+            {text: rp.speed + ' км/ч', style: 'detail'}
+          ]);
+          canvas.style.cursor = 'pointer';
+          return;
+        }
+      }
+    }
+  }
+
+  origHandleHover(e);
+};
+
+function showRealPlaneInfo(rp) {
+  showInfoSection(rp.callsign || 'Самолёт');
+  document.getElementById('infoContent').innerHTML = `
+    <div class="info-card transport-info">
+      <div class="info-badge hub"><div class="bdot"></div>Авиарейс (LIVE)</div>
+      <div class="ti-name">${rp.callsign || 'N/A'}</div>
+      <div class="ti-route">${rp.country}</div>
+      <div class="detail-row"><div class="dlabel">Высота</div><div class="dval">${rp.alt} м</div></div>
+      <div class="detail-row"><div class="dlabel">Скорость</div><div class="dval">${rp.speed} км/ч</div></div>
+      <div class="detail-row"><div class="dlabel">Курс</div><div class="dval">${Math.round(rp.heading)}°</div></div>
+      <div class="detail-row"><div class="dlabel">Страна</div><div class="dval">${rp.country}</div></div>
+      <div class="detail-row"><div class="dlabel">Координаты</div><div class="dval">${rp.lat.toFixed(2)}°N, ${rp.lon.toFixed(2)}°E</div></div>
+    </div>`;
+}
+
+// Start OpenSky fetching
+fetchRealPlanes();
+planesInterval = setInterval(fetchRealPlanes, 30000);
+
+// ===================== 2. stat.gov.kz — Kazakhstan Transport Data =====================
+async function fetchKZTransportData() {
+  try {
+    const resp = await fetch('https://stat.gov.kz/api/iblock/element/38141/json/file/ru/');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    // Try to parse meaningful freight data
+    let railFreight = null, autoFreight = null, waterFreight = null;
+
+    if (data && typeof data === 'object') {
+      // Attempt to extract from response structure
+      // stat.gov.kz may return various formats
+      const text = JSON.stringify(data);
+      // Look for numeric patterns in response
+      const numbers = text.match(/[\d]+[.,]?\d*/g);
+      if (numbers && numbers.length >= 3) {
+        railFreight = numbers[0];
+        autoFreight = numbers[1];
+        waterFreight = numbers[2];
+      }
+    }
+
+    // Update top-left overlay with whatever data we got
+    const el = document.getElementById('doTopLeft');
+    if (el && railFreight) {
+      el.querySelector('.do-val').innerHTML = 'КЗ Грузы';
+      el.querySelector('.do-badge').innerHTML =
+        'Ж/Д: ' + railFreight + ' | Авто: ' + autoFreight + ' | Водный: ' + waterFreight;
+      el.querySelector('.do-label').innerHTML = 'stat.gov.kz · транспорт';
+      addLiveDot(el);
+      console.log('stat.gov.kz: data loaded');
+    }
+  } catch(e) {
+    console.log('stat.gov.kz API error, using fallback:', e.message);
+    // Keep static fallback data — no changes to DOM
+  }
+}
+
+// Fetch once on load
+fetchKZTransportData();
+
+// ===================== 3. RSS News Ticker =====================
+let rssInterval = null;
+
+async function fetchTickerNews() {
+  const feeds = [
+    {name: 'RailFreight', url: 'https://www.railfreight.com/feed/'},
+    {name: 'Astana Times', url: 'https://astanatimes.com/feed/'},
+    {name: 'The Loadstar', url: 'https://theloadstar.com/feed/'}
+  ];
+
+  const allHeadlines = [];
+
+  for (const feed of feeds) {
+    try {
+      const resp = await fetch('https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(feed.url));
+      if (!resp.ok) continue;
+      const data = await resp.json();
+      if (data.items && data.items.length) {
+        data.items.slice(0, 3).forEach(item => {
+          allHeadlines.push(feed.name + ': ' + item.title);
+        });
+      }
+    } catch(e) {
+      console.log('RSS fetch error for ' + feed.name + ':', e.message);
+    }
+  }
+
+  if (allHeadlines.length > 0) {
+    // Take top 5
+    const headlines = allHeadlines.slice(0, 5);
+    const tickerInner = document.querySelector('#doBotRight .do-ticker-inner');
+    if (tickerInner) {
+      tickerInner.innerHTML = headlines.map(h => '<span>' + h + '</span>').join('');
+    }
+    // Add LIVE dot to news overlay
+    const el = document.getElementById('doBotRight');
+    if (el) addLiveDot(el);
+    console.log('RSS: loaded ' + headlines.length + ' headlines');
+  }
+}
+
+// Fetch RSS on load, then every 5 minutes
+fetchTickerNews();
+rssInterval = setInterval(fetchTickerNews, 300000);
+
+// ===================== 4. Data Overlay Update on Toggle =====================
+const origUpdateDataOverlays = updateDataOverlays;
+updateDataOverlays = function() {
+  origUpdateDataOverlays();
+  // When data layer is turned on, trigger fresh fetches if stale
+  if (showData) {
+    // Refresh plane count display
+    if (realPlanes.length > 0) updatePlaneCountOverlay();
+  }
+};
+</script>
+<script src="voice-assistant.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Партнёры — TransCaspian Cargo</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}body{background:#FFFFFF;color:#1a1a1a;font-family:'Montserrat',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}a{color:inherit;text-decoration:none}::selection{background:rgba(198,164,109,.25);color:#1a1a1a}
+:root{--gold:#C6A46D;--gold-light:#D4B87E;--gold-dark:#A38450;--navy:#1B2A4A;--navy-light:#2D4A7A;--bg:#FFFFFF;--bg-alt:#FAFBFD;--bg-card:#FFFFFF;--text:#1B2A4A;--text-mid:#3D5070;--text-light:#7A8BA8;--border:rgba(27,42,74,.08);--border-light:rgba(27,42,74,.05)}
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border-light);transition:box-shadow .3s}.nav.scrolled{box-shadow:0 2px 20px rgba(0,0,0,.05)}.nav-inner{max-width:100%;margin:0;padding:0 40px;display:flex;align-items:center;justify-content:space-between;height:72px}.nav-logo{display:flex;align-items:center;gap:10px}.nav-logo img{height:36px;background:var(--navy);padding:5px 10px;border-radius:6px}.nav-logo span{font-size:11px;color:var(--text-light);font-weight:500;letter-spacing:.02em;border-left:1px solid var(--border);padding-left:10px;line-height:1.3}.nav-links{display:flex;gap:18px}.nav-links a{font-size:11px;color:var(--text-mid);font-weight:600;letter-spacing:.03em;text-transform:uppercase;transition:color .3s;position:relative;white-space:nowrap}.nav-links a:hover,.nav-links a.active{color:var(--gold)}.nav-links a::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:2px;background:var(--gold);transition:width .3s}.nav-links a:hover::after,.nav-links a.active::after{width:100%}.nav-right{display:flex;align-items:center;gap:12px}.lang-switch{display:flex;gap:2px;background:#F5F5F5;border-radius:20px;padding:3px;border:1px solid var(--border-light)}.lang-btn{padding:5px 12px;border-radius:16px;font-size:10px;font-weight:600;border:none;cursor:pointer;background:transparent;color:var(--text-light);transition:all .3s}.lang-btn.active{background:var(--navy);color:#fff}.nav-cta{background:var(--navy);color:#fff;padding:8px 20px;border-radius:20px;font-size:11px;font-weight:700;border:none;cursor:pointer;transition:all .3s;letter-spacing:.02em}.nav-cta:hover{background:var(--navy-light)}.nav-burger{display:none;background:none;border:none;color:var(--text-mid);cursor:pointer;padding:4px}.mobile-menu{display:none;flex-direction:column;gap:0;background:#fff;border-top:1px solid var(--border-light)}.mobile-menu a{padding:14px 24px;color:var(--text-mid);font-size:13px;font-weight:600;border-bottom:1px solid var(--border-light);transition:color .3s}.mobile-menu a:hover{color:var(--gold)}
+.reveal{opacity:0;transform:translateY(30px);transition:opacity .7s ease,transform .7s ease}.reveal.visible{opacity:1;transform:translateY(0)}.reveal-scale{opacity:0;transform:scale(.95);transition:opacity .7s ease,transform .7s ease}.reveal-scale.visible{opacity:1;transform:scale(1)}
+.section{padding:100px 24px;max-width:1240px;margin:0 auto}.section-label{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--gold-dark);font-weight:700;letter-spacing:.15em;text-transform:uppercase;margin-bottom:14px}.section-label::before{content:'';width:24px;height:2px;background:var(--gold);border-radius:1px}.section-title{font-size:clamp(24px,3.5vw,40px);font-weight:800;margin-bottom:16px;line-height:1.15;color:var(--text)}.section-title .gold{color:var(--gold)}.section-desc{font-size:15px;color:var(--text-mid);line-height:1.8;max-width:600px;margin-bottom:48px}
+.section-divider{width:100%;height:1px;background:var(--border-light);max-width:1240px;margin:0 auto}
+.page-hero{padding:140px 24px 60px;text-align:center;background:var(--bg-alt)}.page-hero .section-label{justify-content:center}.page-hero .section-title{max-width:700px;margin-left:auto;margin-right:auto}.page-hero .section-desc{margin-left:auto;margin-right:auto;text-align:center}
+.partners-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-bottom:48px}
+.partner-logo{background:var(--bg-card);border:1px solid var(--border-light);border-radius:12px;padding:28px;display:flex;align-items:center;justify-content:center;height:100px;transition:all .3s}
+.partner-logo:hover{border-color:rgba(198,164,109,.2);box-shadow:0 4px 16px rgba(0,0,0,.04)}
+.partner-logo span{font-size:14px;font-weight:700;color:var(--text-light)}
+.partner-category{margin-bottom:48px}
+.partner-category h3{font-size:16px;font-weight:700;color:var(--text);margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid rgba(198,164,109,.15)}
+.cta-banner{background:linear-gradient(135deg,var(--navy),#0F1D35);padding:64px 24px;text-align:center;position:relative;overflow:hidden}
+.cta-banner::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0v60M0 30h60' stroke='%23fff' stroke-width='.5' opacity='.05'/%3E%3C/svg%3E")}
+.cta-banner h2{font-size:clamp(24px,3vw,36px);font-weight:800;color:#fff;margin-bottom:12px;position:relative}
+.cta-banner p{font-size:15px;color:rgba(255,255,255,.75);margin-bottom:28px;position:relative}
+.cta-banner .btn-white{background:#fff;color:var(--navy);padding:14px 36px;border-radius:28px;font-weight:700;font-size:14px;border:none;cursor:pointer;transition:all .3s;position:relative}
+.cta-banner .btn-white:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.15)}
+footer{background:#0F1D35;color:#fff;padding:64px 24px 32px}.footer-inner{max-width:1240px;margin:0 auto;display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:40px}.footer-brand img{height:28px;margin-bottom:14px}.footer-brand p{font-size:12px;color:rgba(255,255,255,.35);line-height:1.7;margin-bottom:20px}.footer-socials{display:flex;gap:8px}.footer-socials a{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.3);transition:all .3s}.footer-socials a:hover{color:var(--gold-light);border-color:rgba(198,164,109,.3)}.footer-col h4{font-size:11px;font-weight:600;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.1em;margin-bottom:16px}.footer-col a{display:block;font-size:12px;color:rgba(255,255,255,.3);margin-bottom:10px;transition:color .3s}.footer-col a:hover{color:var(--gold-light)}.footer-copy{max-width:1240px;margin:32px auto 0;padding-top:24px;border-top:1px solid rgba(255,255,255,.06);text-align:center;font-size:10px;color:rgba(255,255,255,.15)}
+@media(max-width:1024px){.nav-links{display:none!important}.nav-burger{display:block}.mobile-menu.open{display:flex}.partners-grid{grid-template-columns:repeat(2,1fr)}.footer-inner{grid-template-columns:1fr 1fr}.nav-inner{padding:0 24px}}
+@media(max-width:640px){.partners-grid{grid-template-columns:1fr 1fr}.footer-inner{grid-template-columns:1fr}.section{padding:64px 16px}.nav-inner{padding:0 16px}.nav-right .lang-switch{display:none}.nav-right .nav-cta{padding:6px 14px;font-size:10px}.page-hero{padding:120px 16px 40px}}
+</style>
+</head>
+<body>
+
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo"><img src="https://optim.tildacdn.pro/tild6637-3765-4438-b135-366537363233/-/resize/176x/-/format/webp/noroot.png.webp" alt="TCC"><span>Платформа отраслевой<br>экспертизы</span></a>
+    <div class="nav-links">
+      <a href="index.html">ГЛАВНАЯ</a>
+      <a href="about.html">О НАС</a>
+      <a href="analytics.html">АНАЛИТИКА</a>
+      <a href="solutions.html">РЕШЕНИЯ</a>
+      <a href="education.html">ОБУЧЕНИЕ</a>
+      <a href="wiki.html"><span style="letter-spacing:.12em">WIKI</span>ЛОГИСТ</a>
+      <a href="corridor.html">МАРШРУТЫ</a>
+      <a href="https://tcchub.kz" target="_blank" style="color:var(--gold)">TCC HUB ↗</a>
+      <a href="contacts.html">КОНТАКТЫ</a>
+    </div>
+    <div class="nav-right"><div class="lang-switch"><button class="lang-btn active">РУС</button><button class="lang-btn">ҚАЗ</button><button class="lang-btn">ENG</button></div><a href="https://tcchub.kz/login/index.php" target="_blank" style="padding:8px 16px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid var(--border);color:var(--text-mid);text-decoration:none;transition:all .3s">ВОЙТИ</a>
+      <button class="nav-cta" onclick="location.href='contacts.html'">СВЯЗАТЬСЯ</button></div>
+    <button class="nav-burger" onclick="document.getElementById('mobileMenu').classList.toggle('open')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+  </div>
+  <div class="mobile-menu" id="mobileMenu"><a href="index.html">ГЛАВНАЯ</a><a href="about.html">О ПЛАТФОРМЕ</a><a href="analytics.html">АНАЛИТИКА</a><a href="solutions.html">РЕШЕНИЯ</a><a href="education.html">ОБРАЗОВАНИЕ</a><a href="projects.html">ПРОЕКТЫ</a><a href="media.html">МЕДИА</a><a href="contacts.html">КОНТАКТЫ</a></div>
+</nav>
+
+<div class="page-hero">
+  <div class="section-label" style="justify-content:center">Партнёры</div>
+  <h2 class="section-title">Наши <span class="gold">партнёры</span></h2>
+  <p class="section-desc" style="margin-left:auto;margin-right:auto;text-align:center">Экосистема партнёрств TCC включает международные организации, университеты, отраслевые ассоциации и технологические компании</p>
+</div>
+
+<section class="section">
+  <div class="partner-category reveal">
+    <h3>Международные организации</h3>
+    <div class="partners-grid">
+      <div class="partner-logo reveal-scale"><span>CILT Kazakhstan</span></div>
+      <div class="partner-logo reveal-scale"><span>TITR Association</span></div>
+    </div>
+  </div>
+  <div class="partner-category reveal">
+    <h3>Образование</h3>
+    <div class="partners-grid">
+      <div class="partner-logo reveal-scale"><span>ALT University</span></div>
+      <div class="partner-logo reveal-scale"><span>LMS.KZ</span></div>
+    </div>
+  </div>
+  <div class="partner-category reveal">
+    <h3>Отраслевые партнёры</h3>
+    <div class="partners-grid">
+      <div class="partner-logo reveal-scale"><span>CALTA</span></div>
+      <div class="partner-logo reveal-scale"><span>KTZ Express</span></div>
+    </div>
+  </div>
+  <div class="partner-category reveal">
+    <h3>Международные институты</h3>
+    <div class="partners-grid">
+      <div class="partner-logo reveal-scale"><span>EBRD</span></div>
+      <div class="partner-logo reveal-scale"><span>EU Global Gateway</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="cta-banner">
+  <h2>Стать партнёром TransCaspian Cargo</h2>
+  <p>Присоединяйтесь к экосистеме отраслевой экспертизы в логистике Евразии</p>
+  <button class="btn-white" onclick="location.href='contacts.html'">НАЧАТЬ СОТРУДНИЧЕСТВО</button>
+</div>
+
+<footer>
+  <div class="footer-inner reveal">
+    <div class="footer-brand"><img src="https://optim.tildacdn.pro/tild6637-3765-4438-b135-366537363233/-/resize/176x/-/format/webp/noroot.png.webp" alt="TCC"><p>Интеллектуальная платформа отраслевой экспертизы в логистике и цепях поставок Евразии</p><div class="footer-socials"><a href="https://wa.link/wrcagw" title="WhatsApp"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.11.547 4.093 1.504 5.818L0 24l6.335-1.632A11.955 11.955 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.82a9.796 9.796 0 0 1-5.09-1.418l-.365-.217-3.781.975.999-3.648-.238-.379A9.798 9.798 0 0 1 2.18 12c0-5.414 4.406-9.82 9.82-9.82 5.414 0 9.82 4.406 9.82 9.82 0 5.414-4.406 9.82-9.82 9.82z"/></svg></a><a href="https://www.linkedin.com/company/tccargo/" title="LinkedIn"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg></a><a href="https://www.instagram.com/transcaspian_cargo" title="Instagram"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg></a><a href="https://www.youtube.com/@TCCHUB-25" title="YouTube"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a></div></div>
+    <div class="footer-col"><h4>Платформа</h4><a href="about.html">О платформе</a><a href="analytics.html">Аналитика</a><a href="solutions.html">Решения для бизнеса</a><a href="education.html">Образование</a></div>
+    <div class="footer-col"><h4>Разделы</h4><a href="projects.html">Отраслевые проекты</a><a href="media.html">Медиа</a><a href="partners.html" class="active">Партнёры</a><a href="contacts.html">Контакты</a></div>
+    <div class="footer-col"><h4>Контакты</h4><a href="https://go.2gis.com/RIQGo">Атырау, пр. Студенческий 52</a><a href="tel:+77710544898">+7 771 054 4898</a><a href="mailto:info@tc-cargo.kz">info@tc-cargo.kz</a><span style="font-size:11px;color:rgba(255,255,255,.2);display:block;margin-top:4px">09:00 - 18:00 ПН-ПТ</span></div>
+  </div>
+  <div class="footer-copy">&copy; 2025 TransCaspian Cargo. Все права защищены.</div>
+</footer>
+
+<script>
+(function(){const els=document.querySelectorAll('.reveal,.reveal-left,.reveal-right,.reveal-scale');const obs=new IntersectionObserver(entries=>{entries.forEach(entry=>{if(entry.isIntersecting){const el=entry.target;const siblings=el.parentElement.querySelectorAll('.reveal,.reveal-left,.reveal-right,.reveal-scale');const idx=[...siblings].indexOf(el);setTimeout(()=>el.classList.add('visible'),idx*120);obs.unobserve(el)}})},{threshold:.12});els.forEach(el=>obs.observe(el))})();
+window.addEventListener('scroll',()=>{document.getElementById('nav').classList.toggle('scrolled',window.scrollY>30)});
+document.querySelectorAll('.lang-btn').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active')})});
+</script>
+<script src="voice-assistant.js"></script>
+</body>
+</html>

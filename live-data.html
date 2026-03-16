@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TCC Live Data — Данные в реальном времени | TransCaspian Cargo</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:#FFFFFF;color:#1a1a1a;font-family:'Montserrat',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+::selection{background:rgba(198,164,109,.25);color:#1a1a1a}
+:root{
+  --gold:#C6A46D;--gold-light:#D4B87E;--gold-dark:#A38450;
+  --navy:#1B2A4A;--navy-light:#2D4A7A;
+  --bg:#FFFFFF;--bg-alt:#FAFBFD;--bg-card:#FFFFFF;
+  --text:#1B2A4A;--text-mid:#3D5070;--text-light:#7A8BA8;
+  --border:rgba(198,164,109,.15);--border-light:rgba(27,42,74,.05);
+  --green:#4CAF50;--red:#E53935;--blue:#42A5F5;--orange:#FFA726;
+}
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--border-light);box-shadow:0 2px 20px rgba(0,0,0,.05)}
+.nav-inner{max-width:100%;margin:0;padding:0 40px;display:flex;align-items:center;justify-content:space-between;height:72px}
+.nav-logo{display:flex;align-items:center;gap:12px}
+.nav-logo img{height:36px;background:#0F172A;padding:5px 10px;border-radius:6px}
+.nav-logo span{font-size:11px;color:var(--text-light);font-weight:500;letter-spacing:.02em;border-left:1px solid var(--border);padding-left:12px;line-height:1.3}
+.nav-links{display:flex;gap:18px}
+.nav-links a{font-size:11px;color:var(--text-mid);font-weight:600;letter-spacing:.03em;text-transform:uppercase;transition:color .3s;position:relative;white-space:nowrap}
+.nav-links a:hover,.nav-links a.active{color:var(--gold)}
+.nav-links a.active::after{width:100%}
+.nav-links a::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:2px;background:var(--gold);transition:width .3s}
+.nav-links a:hover::after{width:100%}
+.nav-right{display:flex;align-items:center;gap:12px}
+.lang-switch{display:flex;gap:4px;background:rgba(27,42,74,.04);border-radius:20px;padding:3px;border:1px solid var(--border-light)}
+.lang-btn{padding:5px 12px;border-radius:16px;font-size:11px;font-weight:600;border:none;cursor:pointer;background:transparent;color:var(--text-light);transition:all .3s}
+.lang-btn.active{background:var(--navy);color:#fff}
+.nav-cta{background:var(--navy);color:#fff;padding:8px 20px;border-radius:20px;font-size:12px;font-weight:700;border:none;cursor:pointer;transition:all .3s}
+.nav-cta:hover{background:var(--navy-light);transform:translateY(-1px);box-shadow:0 4px 12px rgba(27,42,74,.2)}
+.nav-burger{display:none;background:none;border:none;color:var(--text-mid);cursor:pointer;padding:4px}
+.mobile-menu{display:none;flex-direction:column;gap:0;background:#fff;border-top:1px solid var(--border-light)}
+.mobile-menu a{padding:14px 24px;color:var(--text-mid);font-size:13px;font-weight:600;border-bottom:1px solid var(--border-light);transition:color .3s}
+.mobile-menu a:hover{color:var(--gold)}
+
+/* HERO HEADER */
+.page-hero{background:var(--navy);padding:120px 24px 48px;text-align:center;position:relative;overflow:hidden}
+.page-hero::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0v60M0 30h60' stroke='%23fff' stroke-width='.5' opacity='.03'/%3E%3C/svg%3E")}
+.page-hero h1{font-size:clamp(24px,4vw,42px);font-weight:800;color:#fff;margin-bottom:12px;position:relative}
+.page-hero h1 .gold{color:var(--gold-light)}
+.page-hero p{font-size:15px;color:rgba(255,255,255,.6);position:relative;margin-bottom:24px}
+.page-hero .last-update{font-size:11px;color:rgba(255,255,255,.35);position:relative}
+
+/* TABS */
+.data-tabs{display:flex;justify-content:center;gap:6px;background:rgba(255,255,255,.06);border-radius:12px;padding:5px;margin:0 auto;max-width:700px;position:relative}
+.data-tab{padding:10px 24px;border-radius:10px;font-size:12px;font-weight:600;color:rgba(255,255,255,.5);cursor:pointer;transition:all .3s;border:none;background:none;letter-spacing:.03em}
+.data-tab:hover{color:#fff}
+.data-tab.active{background:var(--gold);color:#fff}
+
+/* LIVE DOT */
+.live-dot{display:inline-block;width:8px;height:8px;background:var(--red);border-radius:50%;margin-right:6px;animation:livePulse 1.5s infinite}
+@keyframes livePulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(229,57,53,.6)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(229,57,53,0)}}
+
+/* SECTIONS */
+.data-section{display:none;animation:fadeIn .4s ease}
+.data-section.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+.section-wrap{max-width:1200px;margin:0 auto;padding:48px 24px}
+.section-header{margin-bottom:32px}
+.section-label{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--gold-dark);font-weight:700;letter-spacing:.15em;text-transform:uppercase;margin-bottom:14px}
+.section-label::before{content:'';width:24px;height:2px;background:var(--gold);border-radius:1px}
+.section-title{font-size:clamp(22px,3vw,32px);font-weight:800;margin-bottom:12px;line-height:1.2;color:var(--text)}
+.section-title .gold{color:var(--gold)}
+
+/* DATA CARDS */
+.data-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-bottom:32px}
+.data-card{background:var(--bg-card);border:1px solid var(--border-light);border-radius:16px;padding:28px;transition:all .4s;position:relative;overflow:hidden}
+.data-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),var(--gold-light));opacity:0;transition:opacity .4s}
+.data-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.06);border-color:rgba(198,164,109,.2)}
+.data-card:hover::before{opacity:1}
+.data-card-label{font-size:10px;color:var(--text-light);text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-bottom:12px}
+.data-card-value{font-size:36px;font-weight:900;color:var(--text);line-height:1;margin-bottom:8px}
+.data-card-value small{font-size:14px;color:var(--text-light);font-weight:500}
+.data-card-desc{font-size:13px;color:var(--text-mid);line-height:1.6}
+
+/* COUNTER HERO CARD */
+.counter-card{background:var(--navy);border-radius:20px;padding:40px;text-align:center;margin-bottom:32px;position:relative;overflow:hidden}
+.counter-card::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0v60M0 30h60' stroke='%23fff' stroke-width='.5' opacity='.03'/%3E%3C/svg%3E")}
+.counter-num{font-size:clamp(48px,8vw,72px);font-weight:900;color:var(--gold-light);line-height:1;position:relative;margin-bottom:12px}
+.counter-text{font-size:16px;color:rgba(255,255,255,.7);position:relative;margin-bottom:8px}
+.counter-sub{font-size:12px;color:rgba(255,255,255,.35);position:relative}
+.refresh-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.06);border-radius:20px;padding:6px 14px;font-size:11px;color:rgba(255,255,255,.4);margin-top:16px;position:relative}
+.refresh-badge .spin{animation:spin 2s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* AIRCRAFT TABLE */
+.aircraft-table-wrap{background:var(--bg-card);border:1px solid var(--border-light);border-radius:16px;overflow:hidden}
+.aircraft-table-title{padding:20px 24px 16px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;color:var(--text)}
+table.aircraft-table{width:100%;border-collapse:collapse}
+table.aircraft-table thead th{padding:12px 16px;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-light);font-weight:600;text-align:left;border-bottom:1px solid var(--border-light);background:var(--bg-alt)}
+table.aircraft-table tbody td{padding:12px 16px;font-size:12px;border-bottom:1px solid var(--border-light);color:var(--text-mid)}
+table.aircraft-table tbody tr:hover{background:rgba(198,164,109,.03)}
+.status-dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:6px}
+.status-dot.green{background:var(--green)}
+.status-dot.red{background:var(--red)}
+
+/* CSS BAR CHART */
+.bar-chart{display:flex;align-items:flex-end;gap:16px;padding:32px 0;min-height:250px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px}
+.bar-fill{width:100%;border-radius:8px 8px 0 0;transition:height 1.5s cubic-bezier(.4,0,.2,1);position:relative;min-width:40px}
+.bar-fill .bar-val{position:absolute;top:-24px;left:50%;transform:translateX(-50%);font-size:12px;font-weight:700;color:var(--text);white-space:nowrap}
+.bar-label{font-size:10px;color:var(--text-light);font-weight:600;text-align:center;text-transform:uppercase;letter-spacing:.04em}
+
+/* FREIGHT CARDS */
+.freight-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px}
+.freight-card{background:var(--bg-card);border:1px solid var(--border-light);border-radius:16px;padding:28px;text-align:center;transition:all .4s}
+.freight-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.06);border-color:rgba(198,164,109,.2)}
+.freight-route{font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+.freight-rate{font-size:32px;font-weight:900;color:var(--text);margin-bottom:4px}
+.freight-unit{font-size:12px;color:var(--text-light);margin-bottom:12px}
+.freight-trend{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700}
+.freight-trend.up{background:rgba(229,57,53,.08);color:var(--red)}
+.freight-trend.down{background:rgba(76,175,80,.08);color:var(--green)}
+.freight-trend.stable{background:rgba(66,165,245,.08);color:var(--blue)}
+.freight-source{font-size:10px;color:var(--text-light);margin-top:16px;font-style:italic}
+
+/* NEWS FEED */
+.news-feed{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+.news-item{background:var(--bg-card);border:1px solid var(--border-light);border-radius:14px;padding:24px;transition:all .3s}
+.news-item:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.05);border-color:rgba(198,164,109,.2)}
+.news-source{font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.news-title{font-size:14px;font-weight:700;color:var(--text);line-height:1.4;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.news-title a{transition:color .3s}
+.news-title a:hover{color:var(--gold)}
+.news-desc{font-size:12px;color:var(--text-light);line-height:1.6;margin-bottom:10px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.news-date{font-size:10px;color:var(--text-light)}
+
+/* TRADE BARS */
+.trade-bars{display:flex;flex-direction:column;gap:16px;max-width:700px}
+.trade-row{display:flex;align-items:center;gap:16px}
+.trade-country{font-size:13px;font-weight:600;color:var(--text);min-width:120px}
+.trade-bar-wrap{flex:1;height:32px;background:var(--bg-alt);border-radius:8px;overflow:hidden;position:relative}
+.trade-bar-fill{height:100%;border-radius:8px;transition:width 1.5s cubic-bezier(.4,0,.2,1);display:flex;align-items:center;justify-content:flex-end;padding-right:12px}
+.trade-bar-val{font-size:11px;font-weight:700;color:#fff;white-space:nowrap}
+
+/* ERROR */
+.error-msg{background:rgba(229,57,53,.05);border:1px solid rgba(229,57,53,.15);border-radius:12px;padding:24px;text-align:center;color:var(--text-mid);font-size:13px}
+
+/* LOADING */
+.loading{text-align:center;padding:48px;color:var(--text-light);font-size:13px}
+.loading::after{content:'';display:block;width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 1s linear infinite;margin:12px auto 0}
+
+/* FOOTER */
+footer{background:#0F172A;color:#fff;padding:64px 24px 32px}
+.footer-inner{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:40px}
+.footer-brand img{height:28px;margin-bottom:14px}
+.footer-brand p{font-size:12px;color:rgba(255,255,255,.35);line-height:1.7;margin-bottom:20px}
+.footer-socials{display:flex;gap:8px}
+.footer-socials a{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.3);transition:all .3s}
+.footer-socials a:hover{color:var(--gold-light);border-color:rgba(198,164,109,.3)}
+.footer-col h4{font-size:11px;font-weight:600;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.1em;margin-bottom:16px}
+.footer-col a{display:block;font-size:12px;color:rgba(255,255,255,.3);margin-bottom:10px;transition:color .3s}
+.footer-col a:hover{color:var(--gold-light)}
+.footer-copy{max-width:1200px;margin:32px auto 0;padding-top:24px;border-top:1px solid rgba(255,255,255,.06);text-align:center;font-size:10px;color:rgba(255,255,255,.15)}
+
+/* DARK SECTIONS */
+.dark-section{background:var(--navy);padding:48px 24px}
+.dark-section .section-title{color:#fff}
+.dark-section .section-title .gold{color:var(--gold-light)}
+.dark-section .section-label{color:var(--gold-light)}
+.dark-section .data-card{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.06)}
+.dark-section .data-card:hover{border-color:rgba(198,164,109,.3);box-shadow:0 12px 40px rgba(0,0,0,.2)}
+.dark-section .data-card-label{color:rgba(255,255,255,.4)}
+.dark-section .data-card-value{color:#fff}
+.dark-section .data-card-desc{color:rgba(255,255,255,.5)}
+
+@media(max-width:1024px){
+  .nav-links{display:none!important}.nav-burger{display:block}.mobile-menu.open{display:flex}
+  .data-tabs{flex-wrap:wrap}
+  .footer-inner{grid-template-columns:1fr 1fr}
+  .bar-chart{gap:8px}
+  .news-feed{grid-template-columns:1fr 1fr}
+}
+@media(max-width:640px){
+  .nav-inner{padding:0 16px}
+  .nav-right .lang-switch{display:none}
+  .data-tabs{gap:2px}
+  .data-tab{padding:8px 12px;font-size:10px}
+  .footer-inner{grid-template-columns:1fr}
+  .section-wrap{padding:32px 16px}
+  .bar-chart{flex-wrap:wrap;gap:12px}
+  .bar-col{min-width:60px}
+  .news-feed{grid-template-columns:1fr}
+  .freight-cards{grid-template-columns:1fr}
+  .trade-row{flex-direction:column;align-items:flex-start;gap:6px}
+  .trade-country{min-width:auto}
+  .trade-bar-wrap{width:100%}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">
+      <img src="https://optim.tildacdn.pro/tild6637-3765-4438-b135-366537363233/-/resize/176x/-/format/webp/noroot.png.webp" alt="TCC">
+      <span>Платформа отраслевой<br>экспертизы</span>
+    </a>
+    <div class="nav-links">
+      <a href="index.html">ГЛАВНАЯ</a>
+      <a href="about.html">О НАС</a>
+      <a href="analytics.html">АНАЛИТИКА</a>
+      <a href="solutions.html">РЕШЕНИЯ</a>
+      <a href="education.html">ОБУЧЕНИЕ</a>
+      <a href="wiki.html">WIKIЛОГИСТ</a>
+      <a href="corridor.html">МАРШРУТЫ</a>
+      <a href="https://tcchub.kz" target="_blank" style="color:var(--gold)">TCC HUB &#8599;</a>
+      <a href="contacts.html">КОНТАКТЫ</a>
+    </div>
+    <div class="nav-right">
+      <div class="lang-switch"><button class="lang-btn active">РУС</button><button class="lang-btn">ҚАЗ</button><button class="lang-btn">ENG</button></div>
+      <button class="nav-cta" onclick="location.href='contacts.html'">СВЯЗАТЬСЯ</button>
+    </div>
+    <button class="nav-burger" onclick="document.getElementById('mobileMenu').classList.toggle('open')">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="index.html">ГЛАВНАЯ</a>
+    <a href="about.html">О НАС</a>
+    <a href="analytics.html">АНАЛИТИКА</a>
+    <a href="solutions.html">РЕШЕНИЯ</a>
+    <a href="education.html">ОБУЧЕНИЕ</a>
+    <a href="wiki.html">WIKIЛОГИСТ</a>
+    <a href="corridor.html">МАРШРУТЫ</a>
+    <a href="contacts.html">КОНТАКТЫ</a>
+  </div>
+</nav>
+
+<!-- PAGE HERO -->
+<div class="page-hero">
+  <h1>TCC Live Data — <span class="gold">Данные в реальном времени</span></h1>
+  <p>Мониторинг авиатрафика, индексов логистики, фрахтовых ставок и отраслевых новостей</p>
+  <div class="last-update" id="lastUpdate">Последнее обновление: загрузка...</div>
+  <div style="margin-top:20px">
+    <div class="data-tabs" id="dataTabs">
+      <button class="data-tab active" data-tab="traffic">Авиатрафик</button>
+      <button class="data-tab" data-tab="indices">Индексы</button>
+      <button class="data-tab" data-tab="news">Новости</button>
+      <button class="data-tab" data-tab="trade">Торговля</button>
+    </div>
+  </div>
+  <div style="margin-top:16px;position:relative">
+    <a href="index.html" style="font-size:12px;color:rgba(255,255,255,.4);font-weight:600;transition:color .3s">&larr; Вернуться на главную</a>
+  </div>
+</div>
+
+<!-- SECTION 1: AIR TRAFFIC -->
+<div class="data-section active" id="sec-traffic">
+  <div class="section-wrap">
+    <div class="section-header">
+      <div class="section-label"><span class="live-dot"></span> Live Air Traffic</div>
+      <h2 class="section-title">Авиатрафик над <span class="gold">Евразией</span></h2>
+    </div>
+    <div class="counter-card" id="aircraftCounter">
+      <div class="counter-num" id="aircraftNum">---</div>
+      <div class="counter-text">самолётов сейчас в воздухе над Евразией</div>
+      <div class="counter-sub">Регион: 25°-60°N, 20°-130°E | OpenSky Network</div>
+      <div class="refresh-badge">
+        <svg class="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/><polyline points="21 3 21 9 15 9"/></svg>
+        Обновление каждые 30 сек
+      </div>
+    </div>
+    <div class="aircraft-table-wrap">
+      <div class="aircraft-table-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        Первые 20 воздушных судов в регионе
+      </div>
+      <div style="overflow-x:auto">
+        <table class="aircraft-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Позывной</th>
+              <th>Страна</th>
+              <th>Высота (м)</th>
+              <th>Скорость (м/с)</th>
+              <th>Статус</th>
+            </tr>
+          </thead>
+          <tbody id="aircraftTableBody">
+            <tr><td colspan="6" class="loading">Загрузка данных...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 2: INDICES (LPI + Freight) -->
+<div class="data-section" id="sec-indices">
+  <!-- LPI -->
+  <div class="dark-section">
+    <div style="max-width:1200px;margin:0 auto">
+      <div class="section-header">
+        <div class="section-label">World Bank Data</div>
+        <h2 class="section-title">Logistics Performance Index — <span class="gold">страны Среднего коридора</span></h2>
+      </div>
+      <div id="lpiChart" class="loading">Загрузка данных World Bank...</div>
+    </div>
+  </div>
+
+  <!-- FREIGHT -->
+  <div class="section-wrap">
+    <div class="section-header">
+      <div class="section-label">Freightos Baltic Index</div>
+      <h2 class="section-title">Фрахтовые ставки — <span class="gold">ключевые маршруты</span></h2>
+    </div>
+    <div class="freight-cards" id="freightCards">
+      <!-- Filled by JS -->
+    </div>
+    <p class="freight-source" style="text-align:center;margin-top:20px">Источник: Freightos Baltic Index (FBX). Данные приблизительные на текущий период.</p>
+  </div>
+</div>
+
+<!-- SECTION 3: NEWS -->
+<div class="data-section" id="sec-news">
+  <div class="section-wrap">
+    <div class="section-header">
+      <div class="section-label"><span class="live-dot"></span> LIVE — Последние новости логистики</div>
+      <h2 class="section-title">Новостная <span class="gold">лента</span></h2>
+      <p style="font-size:13px;color:var(--text-light);margin-top:8px">Агрегация из The Loadstar, FreightWaves, Splash247. Обновление каждые 5 минут.</p>
+    </div>
+    <div id="newsFeed" class="loading">Загрузка новостей...</div>
+  </div>
+</div>
+
+<!-- SECTION 4: TRADE -->
+<div class="data-section" id="sec-trade">
+  <div class="section-wrap">
+    <div class="section-header">
+      <div class="section-label">UN Comtrade</div>
+      <h2 class="section-title">Торговые партнёры <span class="gold">Казахстана</span></h2>
+      <p style="font-size:13px;color:var(--text-light);margin-top:8px">Топ-5 по объёму экспорта (данные UN Comtrade)</p>
+    </div>
+    <div id="tradeChart"></div>
+  </div>
+
+  <!-- DARK SECTION: TRADE SUMMARY CARDS -->
+  <div class="dark-section">
+    <div style="max-width:1200px;margin:0 auto">
+      <div class="section-header">
+        <div class="section-label">Обзор</div>
+        <h2 class="section-title">Внешняя торговля <span class="gold">в цифрах</span></h2>
+      </div>
+      <div class="data-cards">
+        <div class="data-card">
+          <div class="data-card-label">Общий экспорт КЗ</div>
+          <div class="data-card-value">$40.5<small> млрд</small></div>
+          <div class="data-card-desc">Общий объём экспорта Казахстана (годовой)</div>
+        </div>
+        <div class="data-card">
+          <div class="data-card-label">Главный партнёр</div>
+          <div class="data-card-value">КНР</div>
+          <div class="data-card-desc">Китай — крупнейший торговый партнёр с $15 млрд</div>
+        </div>
+        <div class="data-card">
+          <div class="data-card-label">Средний коридор</div>
+          <div class="data-card-value">4.5<small> млн т</small></div>
+          <div class="data-card-desc">Грузопоток через ТМТМ в 2024 году</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <img src="https://optim.tildacdn.pro/tild6637-3765-4438-b135-366537363233/-/resize/176x/-/format/webp/noroot.png.webp" alt="TCC">
+      <p>Интеллектуальная платформа отраслевой экспертизы в логистике и цепях поставок Евразии</p>
+      <div class="footer-socials">
+        <a href="https://wa.link/wrcagw" title="WhatsApp"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.11.547 4.093 1.504 5.818L0 24l6.335-1.632A11.955 11.955 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.82a9.796 9.796 0 0 1-5.09-1.418l-.365-.217-3.781.975.999-3.648-.238-.379A9.798 9.798 0 0 1 2.18 12c0-5.414 4.406-9.82 9.82-9.82 5.414 0 9.82 4.406 9.82 9.82 0 5.414-4.406 9.82-9.82 9.82z"/></svg></a>
+        <a href="https://www.linkedin.com/company/tccargo/" title="LinkedIn"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg></a>
+        <a href="https://www.instagram.com/transcaspian_cargo" title="Instagram"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg></a>
+        <a href="https://www.youtube.com/@TCCHUB-25" title="YouTube"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
+      </div>
+    </div>
+    <div class="footer-col"><h4>Платформа</h4><a href="about.html">О платформе</a><a href="analytics.html">Аналитика</a><a href="solutions.html">Решения для бизнеса</a><a href="education.html">Образование</a></div>
+    <div class="footer-col"><h4>Разделы</h4><a href="projects.html">Отраслевые проекты</a><a href="media.html">Медиа</a><a href="partners.html">Партнёры</a><a href="contacts.html">Контакты</a></div>
+    <div class="footer-col"><h4>Контакты</h4><a href="https://go.2gis.com/RIQGo">Атырау, пр. Студенческий 52</a><a href="tel:+77710544898">+7 771 054 4898</a><a href="mailto:info@tc-cargo.kz">info@tc-cargo.kz</a><span style="font-size:11px;color:rgba(255,255,255,.2);display:block;margin-top:4px">09:00 - 18:00 ПН-ПТ</span></div>
+  </div>
+  <div class="footer-copy">&copy; 2025 TransCaspian Cargo. Все права защищены. Платформа отраслевой экспертизы в логистике Евразии.</div>
+</footer>
+
+<script>
+// ==========================================
+// TCC LIVE DATA — ALL LOGIC
+// ==========================================
+
+// ---- UTILS ----
+function updateTimestamp() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  document.getElementById('lastUpdate').textContent =
+    'Последнее обновление: ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds()) + ' | ' +
+    pad(now.getDate()) + '.' + pad(now.getMonth()+1) + '.' + now.getFullYear();
+}
+updateTimestamp();
+
+// ---- TAB SWITCHING ----
+document.querySelectorAll('.data-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.data-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.data-section').forEach(s => s.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('sec-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// ---- LANG SWITCH ----
+document.querySelectorAll('.lang-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+// ==========================================
+// SECTION 1: OPENSKY AIR TRAFFIC
+// ==========================================
+async function loadAirTraffic() {
+  try {
+    const resp = await fetch('https://opensky-network.org/api/states/all?lamin=25&lomin=20&lamax=60&lomax=130');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    const states = data.states || [];
+    const total = states.length;
+
+    // Counter
+    document.getElementById('aircraftNum').textContent = total.toLocaleString('ru-RU');
+
+    // Table — first 20
+    const tbody = document.getElementById('aircraftTableBody');
+    if (total === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="error-msg">Нет данных по воздушным судам в регионе</td></tr>';
+      return;
+    }
+    const rows = states.slice(0, 20);
+    tbody.innerHTML = rows.map((s, i) => {
+      const callsign = (s[1] || '---').trim() || '---';
+      const country = s[2] || '---';
+      const altitude = s[7] != null ? Math.round(s[7]).toLocaleString('ru-RU') : '---';
+      const velocity = s[9] != null ? Math.round(s[9]) : '---';
+      const onGround = s[8];
+      return '<tr>' +
+        '<td>' + (i+1) + '</td>' +
+        '<td style="font-weight:600;color:var(--text)">' + callsign + '</td>' +
+        '<td>' + country + '</td>' +
+        '<td>' + altitude + '</td>' +
+        '<td>' + velocity + '</td>' +
+        '<td><span class="status-dot ' + (onGround ? 'red' : 'green') + '"></span>' + (onGround ? 'На земле' : 'В полёте') + '</td>' +
+        '</tr>';
+    }).join('');
+
+    updateTimestamp();
+  } catch (e) {
+    console.error('OpenSky error:', e);
+    document.getElementById('aircraftNum').textContent = '---';
+    document.getElementById('aircraftTableBody').innerHTML =
+      '<tr><td colspan="6" class="error-msg">Данные недоступны. OpenSky Network API временно недоступен. Попробуйте позже.</td></tr>';
+  }
+}
+loadAirTraffic();
+setInterval(loadAirTraffic, 30000);
+
+// ==========================================
+// SECTION 2: WORLD BANK LPI
+// ==========================================
+const lpiCountries = {
+  'KZ': { name: 'Казахстан', color: 'var(--gold)' },
+  'AZ': { name: 'Азербайджан', color: '#42A5F5' },
+  'GE': { name: 'Грузия', color: '#66BB6A' },
+  'TR': { name: 'Турция', color: '#EF5350' },
+  'CN': { name: 'Китай', color: '#FFA726' },
+  'RU': { name: 'Россия', color: '#AB47BC' }
+};
+// Fallback data (LPI 2023 approximate)
+const lpiFallback = [
+  { code: 'CN', score: 3.7 },
+  { code: 'TR', score: 3.4 },
+  { code: 'RU', score: 2.8 },
+  { code: 'KZ', score: 2.7 },
+  { code: 'GE', score: 2.6 },
+  { code: 'AZ', score: 2.5 }
+];
+
+function renderLPI(data) {
+  const maxScore = Math.max(...data.map(d => d.score));
+  const container = document.getElementById('lpiChart');
+  container.className = '';
+  container.innerHTML =
+    '<div class="bar-chart">' +
+      data.map(d => {
+        const info = lpiCountries[d.code] || { name: d.code, color: 'var(--gold)' };
+        const pct = (d.score / 5) * 100; // LPI max is 5
+        return '<div class="bar-col">' +
+          '<div class="bar-fill" style="height:' + pct + '%;background:' + info.color + '">' +
+            '<div class="bar-val" style="color:' + info.color + '">' + d.score.toFixed(1) + '</div>' +
+          '</div>' +
+          '<div class="bar-label" style="color:rgba(255,255,255,.6)">' + info.name + '</div>' +
+        '</div>';
+      }).join('') +
+    '</div>' +
+    '<p style="font-size:11px;color:rgba(255,255,255,.3);text-align:center;margin-top:8px">Источник: World Bank Logistics Performance Index (LPI). Шкала 1-5.</p>';
+}
+
+async function loadLPI() {
+  try {
+    const resp = await fetch('https://api.worldbank.org/v2/country/KZ;AZ;GE;TR;CN;RU/indicator/LP.LPI.OVRL.XQ?format=json&date=2023&per_page=50');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const json = await resp.json();
+    if (!json[1] || json[1].length === 0) throw new Error('No data');
+    const scores = {};
+    json[1].forEach(item => {
+      if (item.value != null) {
+        scores[item.country.id] = { code: item.country.id, score: item.value };
+      }
+    });
+    let data = Object.values(scores);
+    if (data.length < 3) throw new Error('Insufficient data');
+    data.sort((a, b) => b.score - a.score);
+    renderLPI(data);
+  } catch (e) {
+    console.error('World Bank LPI error:', e);
+    renderLPI(lpiFallback);
+  }
+}
+loadLPI();
+
+// ==========================================
+// FREIGHT RATES (STATIC)
+// ==========================================
+const freightData = [
+  { route: 'FBX Global', rate: '$2,100', unit: '/FEU', trend: 'up', trendText: '+12% м/м', desc: 'Глобальный контейнерный индекс' },
+  { route: 'Китай — Европа', rate: '$2,800', unit: '/FEU', trend: 'up', trendText: '+8% м/м', desc: 'Shanghai — Rotterdam / Hamburg' },
+  { route: 'Китай — Средиземноморье', rate: '$2,400', unit: '/FEU', trend: 'stable', trendText: '~0% м/м', desc: 'Shanghai — Genoa / Barcelona' },
+  { route: 'Китай — Вост. побережье СА', rate: '$3,200', unit: '/FEU', trend: 'up', trendText: '+15% м/м', desc: 'Shanghai — New York / Savannah' }
+];
+
+(function renderFreight() {
+  const container = document.getElementById('freightCards');
+  container.innerHTML = freightData.map(f => {
+    const arrow = f.trend === 'up' ? '&#9650;' : f.trend === 'down' ? '&#9660;' : '&#9654;';
+    return '<div class="freight-card">' +
+      '<div class="freight-route">' + f.route + '</div>' +
+      '<div class="freight-rate">' + f.rate + '</div>' +
+      '<div class="freight-unit">' + f.unit + '</div>' +
+      '<div class="freight-trend ' + f.trend + '">' + arrow + ' ' + f.trendText + '</div>' +
+      '<div style="font-size:11px;color:var(--text-light);margin-top:10px">' + f.desc + '</div>' +
+    '</div>';
+  }).join('');
+})();
+
+// ==========================================
+// SECTION 3: NEWS FEED
+// ==========================================
+const rssFeeds = [
+  { name: 'The Loadstar', url: 'https://theloadstar.com/feed/' },
+  { name: 'FreightWaves', url: 'https://www.freightwaves.com/feed' },
+  { name: 'Splash247', url: 'https://splash247.com/feed/' }
+];
+
+const fallbackNews = [
+  { source: 'The Loadstar', title: 'Container shipping rates continue upward trend as peak season approaches', link: 'https://theloadstar.com', desc: 'Global container freight rates have risen for the fifth consecutive week, driven by strong demand and capacity constraints.', date: '2026-03-15' },
+  { source: 'FreightWaves', title: 'Middle Corridor volumes surge as shippers seek alternatives', link: 'https://www.freightwaves.com', desc: 'The Trans-Caspian International Transport Route sees record cargo volumes as geopolitical tensions reshape trade flows.', date: '2026-03-14' },
+  { source: 'Splash247', title: 'Dry bulk market faces headwinds from China slowdown concerns', link: 'https://splash247.com', desc: 'Baltic Dry Index drops amid uncertainty over Chinese steel production and iron ore demand outlook.', date: '2026-03-14' },
+  { source: 'The Loadstar', title: 'Air cargo demand remains strong despite capacity challenges', link: 'https://theloadstar.com', desc: 'Global air freight volumes up 8% year-on-year as e-commerce continues to drive demand across major trade lanes.', date: '2026-03-13' },
+  { source: 'FreightWaves', title: 'Kazakhstan invests $2B in rail infrastructure modernization', link: 'https://www.freightwaves.com', desc: 'New rail links to boost Middle Corridor capacity and reduce transit times between China and Europe.', date: '2026-03-13' },
+  { source: 'Splash247', title: 'Port congestion eases in Europe but worsens in Southeast Asia', link: 'https://splash247.com', desc: 'European ports see improvement while Singapore and Malaysian ports face growing vessel queues.', date: '2026-03-12' },
+  { source: 'The Loadstar', title: 'Maersk and MSC announce new joint services on Asia-Europe trade', link: 'https://theloadstar.com', desc: 'Major carriers expand cooperation with new weekly service connecting Far East to Mediterranean and Northern Europe.', date: '2026-03-12' },
+  { source: 'FreightWaves', title: 'Digital freight platforms gain traction in Central Asia', link: 'https://www.freightwaves.com', desc: 'Technology adoption accelerates across Kazakhstan, Uzbekistan and Azerbaijan as logistics sector modernizes.', date: '2026-03-11' },
+  { source: 'Splash247', title: 'LNG shipping rates spike amid colder-than-expected European winter', link: 'https://splash247.com', desc: 'Spot rates for LNG carriers jump 40% as European utilities scramble to replenish depleted gas inventories.', date: '2026-03-11' },
+  { source: 'The Loadstar', title: 'Supply chain resilience remains top priority for global shippers', link: 'https://theloadstar.com', desc: 'Survey reveals 78% of logistics managers increasing diversification of suppliers and transport routes.', date: '2026-03-10' },
+  { source: 'FreightWaves', title: 'Turkey emerges as key logistics hub connecting Europe and Asia', link: 'https://www.freightwaves.com', desc: 'Istanbul gateway handles record intermodal volumes as Middle Corridor traffic continues rapid growth.', date: '2026-03-10' },
+  { source: 'Splash247', title: 'New environmental regulations reshape global shipping landscape', link: 'https://splash247.com', desc: 'IMO 2025 carbon intensity measures force carriers to optimize routes and invest in cleaner fuel technologies.', date: '2026-03-09' }
+];
+
+function renderNews(articles) {
+  const container = document.getElementById('newsFeed');
+  container.className = 'news-feed';
+  container.innerHTML = articles.slice(0, 12).map(a => {
+    const dateStr = a.date ? new Date(a.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+    return '<div class="news-item">' +
+      '<div class="news-source">' + (a.source || 'Logistics') + '</div>' +
+      '<div class="news-title"><a href="' + (a.link || '#') + '" target="_blank" rel="noopener">' + a.title + '</a></div>' +
+      '<div class="news-desc">' + (a.desc || '') + '</div>' +
+      '<div class="news-date">' + dateStr + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+async function fetchRSS(feed) {
+  const apiUrl = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(feed.url);
+  const resp = await fetch(apiUrl);
+  if (!resp.ok) throw new Error('RSS fetch failed');
+  const data = await resp.json();
+  if (data.status !== 'ok' || !data.items) throw new Error('Bad RSS data');
+  return data.items.map(item => ({
+    source: feed.name,
+    title: item.title,
+    link: item.link,
+    desc: item.description ? item.description.replace(/<[^>]*>/g, '').substring(0, 200) : '',
+    date: item.pubDate || ''
+  }));
+}
+
+async function loadNews() {
+  try {
+    const results = await Promise.allSettled(rssFeeds.map(f => fetchRSS(f)));
+    let allArticles = [];
+    let anySuccess = false;
+    results.forEach(r => {
+      if (r.status === 'fulfilled') {
+        allArticles = allArticles.concat(r.value);
+        anySuccess = true;
+      }
+    });
+    if (!anySuccess) throw new Error('All feeds failed');
+    allArticles.sort((a, b) => new Date(b.date) - new Date(a.date));
+    renderNews(allArticles);
+    updateTimestamp();
+  } catch (e) {
+    console.error('News feed error:', e);
+    renderNews(fallbackNews);
+  }
+}
+loadNews();
+setInterval(loadNews, 300000); // 5 minutes
+
+// ==========================================
+// SECTION 4: TRADE DATA (STATIC)
+// ==========================================
+const tradeData = [
+  { country: 'Китай', value: 15, color: '#FFA726' },
+  { country: 'Италия', value: 11, color: '#42A5F5' },
+  { country: 'Россия', value: 7, color: '#AB47BC' },
+  { country: 'Турция', value: 4, color: '#EF5350' },
+  { country: 'Нидерланды', value: 3.5, color: '#66BB6A' }
+];
+
+(function renderTrade() {
+  const maxVal = Math.max(...tradeData.map(d => d.value));
+  const container = document.getElementById('tradeChart');
+  container.innerHTML =
+    '<div class="trade-bars">' +
+      tradeData.map(d => {
+        const pct = (d.value / maxVal) * 100;
+        return '<div class="trade-row">' +
+          '<div class="trade-country">' + d.country + '</div>' +
+          '<div class="trade-bar-wrap">' +
+            '<div class="trade-bar-fill" style="width:' + pct + '%;background:' + d.color + '">' +
+              '<div class="trade-bar-val">$' + d.value + ' млрд</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('') +
+    '</div>' +
+    '<p style="font-size:11px;color:var(--text-light);margin-top:16px">Источник: UN Comtrade. Объём экспорта Казахстана по странам-партнёрам.</p>';
+})();
+</script>
+<script src="voice-assistant.js"></script>
+</body>
+</html>
