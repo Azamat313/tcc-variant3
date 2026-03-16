@@ -1051,7 +1051,7 @@ document.querySelectorAll('.lang-btn').forEach(btn=>{btn.addEventListener('click
   const mc=document.getElementById('mobileMap');
   if(!mc||window.innerWidth>640)return;
   const ctx=mc.getContext('2d');
-  const W=mc.parentElement.clientWidth-32,H=200;
+  const W=mc.parentElement.clientWidth,H=180;
   const dpr=Math.min(devicePixelRatio||1,2);
   mc.width=W*dpr;mc.height=H*dpr;mc.style.width=W+'px';mc.style.height=H+'px';
   ctx.scale(dpr,dpr);
@@ -1068,6 +1068,28 @@ document.querySelectorAll('.lang-btn').forEach(btn=>{btn.addEventListener('click
   let t=0;
   function draw(){
     t+=.003;ctx.clearRect(0,0,W,H);
+
+    // Background
+    ctx.fillStyle='#1B2A4A';
+    ctx.fillRect(0,0,W,H);
+
+    // Simplified land shapes (Eurasia outline)
+    ctx.fillStyle='#253B55';
+    // Europe
+    ctx.beginPath();ctx.moveTo(0,H*.2);ctx.lineTo(W*.12,H*.15);ctx.lineTo(W*.2,H*.35);ctx.lineTo(W*.22,H*.6);ctx.lineTo(W*.15,H*.7);ctx.lineTo(0,H*.6);ctx.closePath();ctx.fill();
+    // Turkey/Caucasus
+    ctx.beginPath();ctx.moveTo(W*.15,H*.45);ctx.lineTo(W*.25,H*.4);ctx.lineTo(W*.35,H*.45);ctx.lineTo(W*.35,H*.65);ctx.lineTo(W*.2,H*.7);ctx.lineTo(W*.15,H*.6);ctx.closePath();ctx.fill();
+    // Iran/Middle East
+    ctx.beginPath();ctx.moveTo(W*.35,H*.5);ctx.lineTo(W*.45,H*.55);ctx.lineTo(W*.45,H*.85);ctx.lineTo(W*.3,H*.9);ctx.lineTo(W*.3,H*.65);ctx.closePath();ctx.fill();
+    // Central Asia / Kazakhstan
+    ctx.beginPath();ctx.moveTo(W*.3,H*.15);ctx.lineTo(W*.6,H*.1);ctx.lineTo(W*.65,H*.25);ctx.lineTo(W*.6,H*.5);ctx.lineTo(W*.45,H*.55);ctx.lineTo(W*.35,H*.45);ctx.lineTo(W*.3,H*.3);ctx.closePath();ctx.fill();
+    // China
+    ctx.beginPath();ctx.moveTo(W*.6,H*.15);ctx.lineTo(W*.95,H*.1);ctx.lineTo(W,H*.3);ctx.lineTo(W,H*.7);ctx.lineTo(W*.85,H*.75);ctx.lineTo(W*.7,H*.55);ctx.lineTo(W*.6,H*.45);ctx.closePath();ctx.fill();
+    // India subcontinent
+    ctx.beginPath();ctx.moveTo(W*.55,H*.6);ctx.lineTo(W*.65,H*.55);ctx.lineTo(W*.7,H*.7);ctx.lineTo(W*.6,H*.95);ctx.lineTo(W*.5,H*.8);ctx.closePath();ctx.fill();
+    // Caspian Sea (cut out)
+    ctx.fillStyle='#1B2A4A';
+    ctx.beginPath();ctx.ellipse(W*.36,H*.45,W*.03,H*.12,0,0,Math.PI*2);ctx.fill();
 
     // Route line
     ctx.beginPath();
