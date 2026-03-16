@@ -111,6 +111,6 @@ footer{background:#0F1D35;color:#fff;padding:64px 24px 32px}.footer-inner{max-wi
 window.addEventListener('scroll',()=>{document.getElementById('nav').classList.toggle('scrolled',window.scrollY>30)});
 document.querySelectorAll('.lang-btn').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active')})});
 </script>
-<script src="voice-assistant.js"></script>
+<script src="voice-assistant.js" defer></script>
 </body>
 </html>
