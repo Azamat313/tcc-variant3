@@ -57,7 +57,21 @@ footer{background:#0F1D35;color:#fff;padding:64px 24px 32px}.footer-inner{max-wi
       <button class="nav-cta" onclick="location.href='contacts.html'">СВЯЗАТЬСЯ</button></div>
     <button class="nav-burger" onclick="document.getElementById('mobileMenu').classList.toggle('open')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
   </div>
-  <div class="mobile-menu" id="mobileMenu"><a href="index.html">ГЛАВНАЯ</a><a href="about.html">О ПЛАТФОРМЕ</a><a href="analytics.html">АНАЛИТИКА</a><a href="solutions.html">РЕШЕНИЯ</a><a href="education.html">ОБРАЗОВАНИЕ</a><a href="projects.html">ПРОЕКТЫ</a><a href="media.html" class="active">МЕДИА</a><a href="contacts.html">КОНТАКТЫ</a></div>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="index.html" onclick="this.parentElement.classList.remove('open')">ГЛАВНАЯ</a>
+    <a href="about.html" onclick="this.parentElement.classList.remove('open')">О НАС</a>
+    <a href="analytics.html" onclick="this.parentElement.classList.remove('open')">АНАЛИТИКА</a>
+    <a href="solutions.html" onclick="this.parentElement.classList.remove('open')">РЕШЕНИЯ</a>
+    <a href="education.html" onclick="this.parentElement.classList.remove('open')">ОБУЧЕНИЕ</a>
+    <a href="wiki.html" onclick="this.parentElement.classList.remove('open')">WIKIЛОГИСТ</a>
+    <a href="corridor.html" onclick="this.parentElement.classList.remove('open')">МАРШРУТЫ</a>
+    <a href="https://tcchub.kz" target="_blank" style="color:var(--gold)">TCC HUB ↗</a>
+    <a href="projects.html" onclick="this.parentElement.classList.remove('open')">ПРОЕКТЫ</a>
+    <a href="media.html" onclick="this.parentElement.classList.remove('open')">МЕДИА</a>
+    <a href="partners.html" onclick="this.parentElement.classList.remove('open')">ПАРТНЁРЫ</a>
+    <a href="contacts.html" onclick="this.parentElement.classList.remove('open')">КОНТАКТЫ</a>
+    <a href="https://tcchub.kz/login/index.php" target="_blank" style="color:var(--navy);font-weight:700">ВОЙТИ</a>
+  </div>
 </nav>
 
 <div class="page-hero">
