@@ -848,7 +848,7 @@ const canvas=document.getElementById('globe');
 if(!canvas)return;
 const ctx=canvas.getContext('2d');
 const isMobile=window.innerWidth<=640;
-const W=900,H=900,R=isMobile?580:420;
+const W=900,H=900,R=isMobile?500:420;
 const dpr=Math.min(devicePixelRatio||1,2);
 canvas.width=W*dpr;canvas.height=H*dpr;
 canvas.style.width='100%';canvas.style.height='100%';
