@@ -54,10 +54,7 @@ a{color:inherit;text-decoration:none}
 .globe-wrap{position:absolute;bottom:0;left:50%;transform:translateX(-50%) translateY(40%);width:min(1000px,80vw);aspect-ratio:1;z-index:5}
 .globe-wrap canvas{width:100%!important;height:100%!important}
 .hero-fade{position:absolute;bottom:0;left:0;right:0;height:80px;background:linear-gradient(to top,#fff,transparent);z-index:15}
-.mobile-map{display:none;margin:0;padding:0;overflow:hidden;position:relative}
-.mobile-map::before{content:'';position:absolute;top:0;left:0;right:0;height:40px;background:linear-gradient(to bottom,#fff,transparent);z-index:2;pointer-events:none}
-.mobile-map::after{content:'';position:absolute;bottom:0;left:0;right:0;height:40px;background:linear-gradient(to top,#fff,transparent);z-index:2;pointer-events:none}
-.mobile-map canvas{width:100%;height:180px;display:block}
+.mobile-cta{display:none;flex-direction:column;gap:10px;padding:16px;margin-top:-20px;position:relative;z-index:20}
 
 /* Side columns */
 .hero-sides{position:absolute;bottom:40px;left:0;right:0;z-index:20;max-width:1200px;margin:0 auto;padding:0 32px;display:grid;grid-template-columns:220px 1fr 220px;align-items:end;pointer-events:none}
@@ -150,21 +147,18 @@ footer{background:#0F172A;color:#fff;padding:64px 24px 32px}
   .nav-inner{padding:0 24px}
 }
 @media(max-width:640px){.nav-logo-text{display:none!important}
-  .nav-right a[href*="tcchub"]{display:none!important}
-  .nav-right .nav-cta{padding:6px 12px;font-size:9px}
+  .nav-right{display:none!important}
   .hero{min-height:100vh;overflow:hidden}
   .hero-content{padding-top:80px;padding-bottom:16px;position:relative;z-index:20}
   .hero-title{font-size:clamp(22px,6vw,32px)}
   .hero-sub{font-size:13px}
-  .hero-btns{flex-direction:column;padding:0}
-  .btn-gold,.btn-outline{width:100%;text-align:center;padding:10px 16px;font-size:12px}
+  .hero-btns{display:none!important}
   .hero-badges{padding:0}
   .hero-badges .hero-badge{padding:6px 10px;font-size:10px}
-  .globe-wrap{display:none!important}
-  .hero{min-height:auto!important;overflow:hidden!important;padding-bottom:0}
-  .hero-fade{display:none!important}
-  .mobile-map{display:block!important}
-  .hero-fade{height:60px}
+  .globe-wrap{position:absolute!important;bottom:0!important;left:50%!important;transform:translateX(-50%) translateY(40%)!important;width:100vw!important;aspect-ratio:1!important}
+  .hero-fade{height:50px}
+  .mobile-map{display:none!important}
+  .mobile-cta{display:flex!important}
   #indexNewsFeed{grid-template-columns:1fr!important}
   [style*="justify-content:space-between"]{flex-direction:column!important;gap:8px!important}
   .section-title span[style*="24/7 LIVE"]{display:none!important}
@@ -285,9 +279,11 @@ footer{background:#0F172A;color:#fff;padding:64px 24px 32px}
   <div class="hero-fade"></div>
 </section>
 
-<!-- MOBILE FLAT MAP -->
-<div class="mobile-map">
-  <canvas id="mobileMap"></canvas>
+<!-- MOBILE CTA BUTTONS (after globe) -->
+<div class="mobile-cta">
+  <a href="corridor.html" class="btn-gold" style="text-align:center;text-decoration:none;display:block;padding:12px;font-size:13px">ИССЛЕДОВАТЬ МАРШРУТ</a>
+  <a href="analytics.html" class="btn-outline" style="text-align:center;text-decoration:none;display:block;padding:12px;font-size:13px">АНАЛИТИКА</a>
+  <a href="solutions.html" class="btn-outline" style="text-align:center;text-decoration:none;display:block;padding:12px;font-size:13px">РЕШЕНИЯ ДЛЯ БИЗНЕСА</a>
 </div>
 
 <!-- БЛОК: Трансформация мировой логистики -->
@@ -1048,94 +1044,7 @@ window.addEventListener('scroll',()=>{document.getElementById('nav').classList.t
 // Lang switch
 document.querySelectorAll('.lang-btn').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active')})});
 
-// Mobile flat corridor map
-(function(){
-  const mc=document.getElementById('mobileMap');
-  if(!mc||window.innerWidth>640)return;
-  const ctx=mc.getContext('2d');
-  const W=mc.parentElement.clientWidth,H=180;
-  const dpr=Math.min(devicePixelRatio||1,2);
-  mc.width=W*dpr;mc.height=H*dpr;mc.style.width=W+'px';mc.style.height=H+'px';
-  ctx.scale(dpr,dpr);
-
-  const mCities=[
-    {n:'Шанхай',lo:121.5,la:31.2},{n:'Сиань',lo:109,la:34.3},{n:'Урумчи',lo:87.6,la:43.8},
-    {n:'Хоргос',lo:80.3,la:44.2},{n:'Алматы',lo:76.9,la:43.2},{n:'Астана',lo:71.4,la:51.1},
-    {n:'Атырау',lo:51.9,la:47.1,hub:1},{n:'Актау',lo:51.1,la:43.6},
-    {n:'Баку',lo:49.9,la:40.4},{n:'Тбилиси',lo:44.8,la:41.7},
-    {n:'Стамбул',lo:29,la:41},{n:'Роттердам',lo:4.5,la:51.9},
-  ];
-  const route=[0,1,2,3,4,5,6,7,8,9,10,11];
-  let mobileMapLand=null;
-  fetch('https://raw.githubusercontent.com/martynafford/natural-earth-geojson/refs/heads/master/110m/physical/ne_110m_land.json')
-    .then(r=>r.json()).then(d=>{mobileMapLand=d});
-
-  let t=0;
-  function draw(){
-    t+=.003;ctx.clearRect(0,0,W,H);
-
-    // Use d3 Mercator for real map
-    if(!mobileMapLand){requestAnimationFrame(draw);return}
-    ctx.clearRect(0,0,W,H);
-    ctx.fillStyle='#1B2A4A';ctx.fillRect(0,0,W,H);
-
-    // Draw real land
-    const mProj=d3.geoMercator().center([60,40]).scale(W/3.5).translate([W/2,H/2]);
-    const mPath=d3.geoPath().projection(mProj).context(ctx);
-
-    ctx.beginPath();mobileMapLand.features.forEach(f=>mPath(f));
-    ctx.fillStyle='#253B55';ctx.fill();
-    ctx.strokeStyle='rgba(255,255,255,.06)';ctx.lineWidth=.5;ctx.stroke();
-
-    // Recalculate city positions from real coords
-    mCities.forEach(c=>{const p=mProj([c.lo,c.la]);c._x=p[0];c._y=p[1]});
-
-    // Route line
-    ctx.beginPath();
-    route.forEach((idx,i)=>{
-      const c=mCities[idx];
-      i===0?ctx.moveTo(c._x,c._y):ctx.lineTo(c._x,c._y);
-    });
-    ctx.strokeStyle='rgba(198,164,109,.45)';ctx.lineWidth=2;ctx.setLineDash([5,3]);ctx.stroke();ctx.setLineDash([]);
-    // Solid glow line underneath
-    ctx.beginPath();
-    route.forEach((idx,i)=>{const c=mCities[idx];i===0?ctx.moveTo(c._x,c._y):ctx.lineTo(c._x,c._y)});
-    ctx.strokeStyle='rgba(198,164,109,.1)';ctx.lineWidth=6;ctx.stroke();
-
-    // Moving dots
-    for(let d=0;d<3;d++){
-      const prog=((t*.4+d*.33)%1);
-      const seg=prog*(route.length-1);
-      const idx=Math.floor(seg),frac=seg-idx;
-      if(idx>=route.length-1)continue;
-      const c1=mCities[route[idx]],c2=mCities[route[idx+1]];
-      const x=c1._x+(c2._x-c1._x)*frac;
-      const y=c1._y+(c2._y-c1._y)*frac;
-      ctx.shadowColor='rgba(198,164,109,.7)';ctx.shadowBlur=6;
-      ctx.fillStyle='#C6A46D';ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
-    }
-
-    // Cities
-    mCities.forEach(c=>{
-      if(!c._x)return;
-      const x=c._x,y=c._y;
-      if(c.hub){
-        const p=(Math.sin(t*5)+1)/2;
-        ctx.strokeStyle='rgba(198,164,109,'+(0.15+p*.2)+')';ctx.lineWidth=1;
-        ctx.beginPath();ctx.arc(x,y,6+p*4,0,Math.PI*2);ctx.stroke();
-        ctx.shadowColor='rgba(198,164,109,.5)';ctx.shadowBlur=8;
-        ctx.fillStyle='#C6A46D';ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
-      }else{
-        ctx.fillStyle='rgba(198,164,109,.7)';ctx.beginPath();ctx.arc(x,y,2.5,0,Math.PI*2);ctx.fill();
-      }
-      ctx.fillStyle='rgba(255,255,255,.55)';ctx.font='600 7px Montserrat,sans-serif';ctx.textAlign='center';
-      ctx.fillText(c.n,x,y-8);
-    });
-
-    requestAnimationFrame(draw);
-  }
-  requestAnimationFrame(draw);
-})();
+// Mobile flat map removed — using globe instead
 
 // ==========================================
 // LIVE NEWS FEED FOR INDEX PAGE
