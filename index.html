@@ -1056,48 +1056,49 @@ document.querySelectorAll('.lang-btn').forEach(btn=>{btn.addEventListener('click
   mc.width=W*dpr;mc.height=H*dpr;mc.style.width=W+'px';mc.style.height=H+'px';
   ctx.scale(dpr,dpr);
 
-  const cities=[
-    {n:'Шанхай',x:.95,y:.55},{n:'Сиань',x:.82,y:.5},{n:'Урумчи',x:.65,y:.35},
-    {n:'Хоргос',x:.58,y:.38},{n:'Алматы',x:.55,y:.45},{n:'Астана',x:.50,y:.28},
-    {n:'Атырау',x:.35,y:.35,hub:1},{n:'Актау',x:.34,y:.48},
-    {n:'Баку',x:.32,y:.55},{n:'Тбилиси',x:.28,y:.5},
-    {n:'Стамбул',x:.18,y:.55},{n:'Роттердам',x:.05,y:.3},
+  const mCities=[
+    {n:'Шанхай',lo:121.5,la:31.2},{n:'Сиань',lo:109,la:34.3},{n:'Урумчи',lo:87.6,la:43.8},
+    {n:'Хоргос',lo:80.3,la:44.2},{n:'Алматы',lo:76.9,la:43.2},{n:'Астана',lo:71.4,la:51.1},
+    {n:'Атырау',lo:51.9,la:47.1,hub:1},{n:'Актау',lo:51.1,la:43.6},
+    {n:'Баку',lo:49.9,la:40.4},{n:'Тбилиси',lo:44.8,la:41.7},
+    {n:'Стамбул',lo:29,la:41},{n:'Роттердам',lo:4.5,la:51.9},
   ];
   const route=[0,1,2,3,4,5,6,7,8,9,10,11];
+  let mobileMapLand=null;
+  fetch('https://raw.githubusercontent.com/martynafford/natural-earth-geojson/refs/heads/master/110m/physical/ne_110m_land.json')
+    .then(r=>r.json()).then(d=>{mobileMapLand=d});
 
   let t=0;
   function draw(){
     t+=.003;ctx.clearRect(0,0,W,H);
 
-    // Background
-    ctx.fillStyle='#1B2A4A';
-    ctx.fillRect(0,0,W,H);
+    // Use d3 Mercator for real map
+    if(!mobileMapLand){requestAnimationFrame(draw);return}
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='#1B2A4A';ctx.fillRect(0,0,W,H);
 
-    // Simplified land shapes (Eurasia outline)
-    ctx.fillStyle='#253B55';
-    // Europe
-    ctx.beginPath();ctx.moveTo(0,H*.2);ctx.lineTo(W*.12,H*.15);ctx.lineTo(W*.2,H*.35);ctx.lineTo(W*.22,H*.6);ctx.lineTo(W*.15,H*.7);ctx.lineTo(0,H*.6);ctx.closePath();ctx.fill();
-    // Turkey/Caucasus
-    ctx.beginPath();ctx.moveTo(W*.15,H*.45);ctx.lineTo(W*.25,H*.4);ctx.lineTo(W*.35,H*.45);ctx.lineTo(W*.35,H*.65);ctx.lineTo(W*.2,H*.7);ctx.lineTo(W*.15,H*.6);ctx.closePath();ctx.fill();
-    // Iran/Middle East
-    ctx.beginPath();ctx.moveTo(W*.35,H*.5);ctx.lineTo(W*.45,H*.55);ctx.lineTo(W*.45,H*.85);ctx.lineTo(W*.3,H*.9);ctx.lineTo(W*.3,H*.65);ctx.closePath();ctx.fill();
-    // Central Asia / Kazakhstan
-    ctx.beginPath();ctx.moveTo(W*.3,H*.15);ctx.lineTo(W*.6,H*.1);ctx.lineTo(W*.65,H*.25);ctx.lineTo(W*.6,H*.5);ctx.lineTo(W*.45,H*.55);ctx.lineTo(W*.35,H*.45);ctx.lineTo(W*.3,H*.3);ctx.closePath();ctx.fill();
-    // China
-    ctx.beginPath();ctx.moveTo(W*.6,H*.15);ctx.lineTo(W*.95,H*.1);ctx.lineTo(W,H*.3);ctx.lineTo(W,H*.7);ctx.lineTo(W*.85,H*.75);ctx.lineTo(W*.7,H*.55);ctx.lineTo(W*.6,H*.45);ctx.closePath();ctx.fill();
-    // India subcontinent
-    ctx.beginPath();ctx.moveTo(W*.55,H*.6);ctx.lineTo(W*.65,H*.55);ctx.lineTo(W*.7,H*.7);ctx.lineTo(W*.6,H*.95);ctx.lineTo(W*.5,H*.8);ctx.closePath();ctx.fill();
-    // Caspian Sea (cut out)
-    ctx.fillStyle='#1B2A4A';
-    ctx.beginPath();ctx.ellipse(W*.36,H*.45,W*.03,H*.12,0,0,Math.PI*2);ctx.fill();
+    // Draw real land
+    const mProj=d3.geoMercator().center([60,40]).scale(W/3.5).translate([W/2,H/2]);
+    const mPath=d3.geoPath().projection(mProj).context(ctx);
+
+    ctx.beginPath();mobileMapLand.features.forEach(f=>mPath(f));
+    ctx.fillStyle='#253B55';ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,.06)';ctx.lineWidth=.5;ctx.stroke();
+
+    // Recalculate city positions from real coords
+    mCities.forEach(c=>{const p=mProj([c.lo,c.la]);c._x=p[0];c._y=p[1]});
 
     // Route line
     ctx.beginPath();
     route.forEach((idx,i)=>{
-      const c=cities[idx];
-      i===0?ctx.moveTo(c.x*W,c.y*H):ctx.lineTo(c.x*W,c.y*H);
+      const c=mCities[idx];
+      i===0?ctx.moveTo(c._x,c._y):ctx.lineTo(c._x,c._y);
     });
-    ctx.strokeStyle='rgba(198,164,109,.4)';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);
+    ctx.strokeStyle='rgba(198,164,109,.45)';ctx.lineWidth=2;ctx.setLineDash([5,3]);ctx.stroke();ctx.setLineDash([]);
+    // Solid glow line underneath
+    ctx.beginPath();
+    route.forEach((idx,i)=>{const c=mCities[idx];i===0?ctx.moveTo(c._x,c._y):ctx.lineTo(c._x,c._y)});
+    ctx.strokeStyle='rgba(198,164,109,.1)';ctx.lineWidth=6;ctx.stroke();
 
     // Moving dots
     for(let d=0;d<3;d++){
@@ -1105,26 +1106,28 @@ document.querySelectorAll('.lang-btn').forEach(btn=>{btn.addEventListener('click
       const seg=prog*(route.length-1);
       const idx=Math.floor(seg),frac=seg-idx;
       if(idx>=route.length-1)continue;
-      const c1=cities[route[idx]],c2=cities[route[idx+1]];
-      const x=c1.x*W+(c2.x*W-c1.x*W)*frac;
-      const y=c1.y*H+(c2.y*H-c1.y*H)*frac;
-      ctx.shadowColor='rgba(198,164,109,.6)';ctx.shadowBlur=4;
-      ctx.fillStyle='#C6A46D';ctx.beginPath();ctx.arc(x,y,2.5,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+      const c1=mCities[route[idx]],c2=mCities[route[idx+1]];
+      const x=c1._x+(c2._x-c1._x)*frac;
+      const y=c1._y+(c2._y-c1._y)*frac;
+      ctx.shadowColor='rgba(198,164,109,.7)';ctx.shadowBlur=6;
+      ctx.fillStyle='#C6A46D';ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
     }
 
     // Cities
-    cities.forEach(c=>{
-      const x=c.x*W,y=c.y*H;
+    mCities.forEach(c=>{
+      if(!c._x)return;
+      const x=c._x,y=c._y;
       if(c.hub){
         const p=(Math.sin(t*5)+1)/2;
-        ctx.strokeStyle='rgba(198,164,109,'+(0.1+p*.15)+')';ctx.lineWidth=1;
-        ctx.beginPath();ctx.arc(x,y,5+p*3,0,Math.PI*2);ctx.stroke();
-        ctx.fillStyle='#C6A46D';ctx.beginPath();ctx.arc(x,y,3.5,0,Math.PI*2);ctx.fill();
+        ctx.strokeStyle='rgba(198,164,109,'+(0.15+p*.2)+')';ctx.lineWidth=1;
+        ctx.beginPath();ctx.arc(x,y,6+p*4,0,Math.PI*2);ctx.stroke();
+        ctx.shadowColor='rgba(198,164,109,.5)';ctx.shadowBlur=8;
+        ctx.fillStyle='#C6A46D';ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
       }else{
-        ctx.fillStyle='rgba(198,164,109,.6)';ctx.beginPath();ctx.arc(x,y,2,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='rgba(198,164,109,.7)';ctx.beginPath();ctx.arc(x,y,2.5,0,Math.PI*2);ctx.fill();
       }
-      ctx.fillStyle='rgba(255,255,255,.5)';ctx.font='500 7px Montserrat,sans-serif';ctx.textAlign='center';
-      ctx.fillText(c.n,x,y-6);
+      ctx.fillStyle='rgba(255,255,255,.55)';ctx.font='600 7px Montserrat,sans-serif';ctx.textAlign='center';
+      ctx.fillText(c.n,x,y-8);
     });
 
     requestAnimationFrame(draw);
