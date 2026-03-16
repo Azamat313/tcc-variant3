@@ -54,6 +54,8 @@ a{color:inherit;text-decoration:none}
 .globe-wrap{position:absolute;bottom:0;left:50%;transform:translateX(-50%) translateY(40%);width:min(1000px,80vw);aspect-ratio:1;z-index:5}
 .globe-wrap canvas{width:100%!important;height:100%!important}
 .hero-fade{position:absolute;bottom:0;left:0;right:0;height:80px;background:linear-gradient(to top,#fff,transparent);z-index:15}
+.mobile-map{display:none;background:#1B2A4A;border-radius:16px;margin:0 16px 24px;padding:20px 16px;overflow:hidden;position:relative}
+.mobile-map canvas{width:100%;height:200px;display:block;border-radius:8px}
 
 /* Side columns */
 .hero-sides{position:absolute;bottom:40px;left:0;right:0;z-index:20;max-width:1200px;margin:0 auto;padding:0 32px;display:grid;grid-template-columns:220px 1fr 220px;align-items:end;pointer-events:none}
@@ -157,8 +159,9 @@ footer{background:#0F172A;color:#fff;padding:64px 24px 32px}
   .hero-badges{padding:0}
   .hero-badges .hero-badge{padding:6px 10px;font-size:10px}
   .globe-wrap{display:none!important}
-  .hero{min-height:auto!important;overflow:hidden!important;padding-bottom:40px}
+  .hero{min-height:auto!important;overflow:hidden!important;padding-bottom:0}
   .hero-fade{display:none!important}
+  .mobile-map{display:block!important}
   .hero-fade{height:60px}
   #indexNewsFeed{grid-template-columns:1fr!important}
   [style*="justify-content:space-between"]{flex-direction:column!important;gap:8px!important}
@@ -279,6 +282,18 @@ footer{background:#0F172A;color:#fff;padding:64px 24px 32px}
   <div class="globe-wrap"><canvas id="globe"></canvas></div>
   <div class="hero-fade"></div>
 </section>
+
+<!-- MOBILE FLAT MAP -->
+<div class="mobile-map">
+  <canvas id="mobileMap"></canvas>
+  <div style="display:flex;justify-content:space-between;margin-top:12px">
+    <div style="text-align:center"><div style="font-size:18px;font-weight:900;color:#D4B87E">4.5<small style="font-size:10px;color:rgba(255,255,255,.4)">млн т</small></div><div style="font-size:8px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Грузы ТМТМ</div></div>
+    <div style="text-align:center"><div style="font-size:18px;font-weight:900;color:#D4B87E">+62%</div><div style="font-size:8px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Рост</div></div>
+    <div style="text-align:center"><div style="font-size:18px;font-weight:900;color:#D4B87E">15<small style="font-size:10px;color:rgba(255,255,255,.4)">дн</small></div><div style="font-size:8px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Транзит</div></div>
+    <div style="text-align:center"><div style="font-size:18px;font-weight:900;color:#D4B87E">6500<small style="font-size:10px;color:rgba(255,255,255,.4)">км</small></div><div style="font-size:8px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Длина</div></div>
+  </div>
+  <a href="corridor.html" style="display:block;text-align:center;margin-top:12px;padding:10px;background:rgba(198,164,109,.15);border:1px solid rgba(198,164,109,.25);border-radius:10px;color:#D4B87E;font-size:12px;font-weight:700;text-decoration:none">ИССЛЕДОВАТЬ МАРШРУТ →</a>
+</div>
 
 <!-- БЛОК: Трансформация мировой логистики -->
 <div class="section" style="padding-top:80px;padding-bottom:40px">
@@ -1037,6 +1052,70 @@ requestAnimationFrame(render);
 window.addEventListener('scroll',()=>{document.getElementById('nav').classList.toggle('scrolled',window.scrollY>30)});
 // Lang switch
 document.querySelectorAll('.lang-btn').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active')})});
+
+// Mobile flat corridor map
+(function(){
+  const mc=document.getElementById('mobileMap');
+  if(!mc||window.innerWidth>640)return;
+  const ctx=mc.getContext('2d');
+  const W=mc.parentElement.clientWidth-32,H=200;
+  const dpr=Math.min(devicePixelRatio||1,2);
+  mc.width=W*dpr;mc.height=H*dpr;mc.style.width=W+'px';mc.style.height=H+'px';
+  ctx.scale(dpr,dpr);
+
+  const cities=[
+    {n:'Шанхай',x:.95,y:.55},{n:'Сиань',x:.82,y:.5},{n:'Урумчи',x:.65,y:.35},
+    {n:'Хоргос',x:.58,y:.38},{n:'Алматы',x:.55,y:.45},{n:'Астана',x:.50,y:.28},
+    {n:'Атырау',x:.35,y:.35,hub:1},{n:'Актау',x:.34,y:.48},
+    {n:'Баку',x:.32,y:.55},{n:'Тбилиси',x:.28,y:.5},
+    {n:'Стамбул',x:.18,y:.55},{n:'Роттердам',x:.05,y:.3},
+  ];
+  const route=[0,1,2,3,4,5,6,7,8,9,10,11];
+
+  let t=0;
+  function draw(){
+    t+=.003;ctx.clearRect(0,0,W,H);
+
+    // Route line
+    ctx.beginPath();
+    route.forEach((idx,i)=>{
+      const c=cities[idx];
+      i===0?ctx.moveTo(c.x*W,c.y*H):ctx.lineTo(c.x*W,c.y*H);
+    });
+    ctx.strokeStyle='rgba(198,164,109,.4)';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);
+
+    // Moving dots
+    for(let d=0;d<3;d++){
+      const prog=((t*.4+d*.33)%1);
+      const seg=prog*(route.length-1);
+      const idx=Math.floor(seg),frac=seg-idx;
+      if(idx>=route.length-1)continue;
+      const c1=cities[route[idx]],c2=cities[route[idx+1]];
+      const x=c1.x*W+(c2.x*W-c1.x*W)*frac;
+      const y=c1.y*H+(c2.y*H-c1.y*H)*frac;
+      ctx.shadowColor='rgba(198,164,109,.6)';ctx.shadowBlur=4;
+      ctx.fillStyle='#C6A46D';ctx.beginPath();ctx.arc(x,y,2.5,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+    }
+
+    // Cities
+    cities.forEach(c=>{
+      const x=c.x*W,y=c.y*H;
+      if(c.hub){
+        const p=(Math.sin(t*5)+1)/2;
+        ctx.strokeStyle='rgba(198,164,109,'+(0.1+p*.15)+')';ctx.lineWidth=1;
+        ctx.beginPath();ctx.arc(x,y,5+p*3,0,Math.PI*2);ctx.stroke();
+        ctx.fillStyle='#C6A46D';ctx.beginPath();ctx.arc(x,y,3.5,0,Math.PI*2);ctx.fill();
+      }else{
+        ctx.fillStyle='rgba(198,164,109,.6)';ctx.beginPath();ctx.arc(x,y,2,0,Math.PI*2);ctx.fill();
+      }
+      ctx.fillStyle='rgba(255,255,255,.5)';ctx.font='500 7px Montserrat,sans-serif';ctx.textAlign='center';
+      ctx.fillText(c.n,x,y-6);
+    });
+
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+})();
 
 // ==========================================
 // LIVE NEWS FEED FOR INDEX PAGE
