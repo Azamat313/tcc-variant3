@@ -10,21 +10,46 @@
   const WS_URL = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${API_KEY}`;
 
   // Short, dense system prompt = faster inference
-  const SYSTEM = `Ты Айша — голосовой ассистент TransCaspian Cargo. Русский язык. КРАТКО: 1-2 предложения макс.
+  const SYSTEM = `Ты Айша — голосовой гид и ассистент сайта TransCaspian Cargo. Русский язык. КРАТКО: 1-2 предложения.
 
-ФАКТЫ:
+КОМПАНИЯ:
 • TCC — платформа экспертизы логистики Евразии. Атырау, Студенческий 52. Тел +77710544898. info@tc-cargo.kz. ПН-ПТ 9-18.
-• Основатель: Рустем Бисалиев.
-• 3 направления: аналитика, бизнес-решения, партнёрства.
-• Средний коридор (ТМТМ): Китай→КЗ→Каспий→Азербайджан→Грузия→Европа. 6500км. 4.5млн т в 2024(+62%). 90637 TEU(+29%). 15-18 дней транзит.
-• Курс "Логистика с нуля": онлайн, 7 модулей, 24ч, 2мес. 5 потоков, 200+ выпускников. Цену уточняйте на tcchub.kz
-• Курс "Логистика 911" для продвинутых, 4 потока.
-• Эксперты: Тайсаринова(23г), Хуснутдинов(25л), Сорокина(22г), Турарбек(7л).
-• Услуги: стратсессии, анализ цепей поставок, навигация рисков, альт.маршруты(ТМТМ/BRI/INSTC).
-• WhatsApp: wa.link/wrcagw | LinkedIn: /company/tccargo | Instagram: @transcaspian_cargo | YouTube: @TCCHUB-25
-• Казахстан: 36.9млн т транзита 2025. Хоргос 372К TEU. Цель 2030: 74млн т.
+• Основатель: Рустем Бисалиев. Патент РК №11718 на LMS. Аккредитация CAAAE №25/26KA0006.
+• 5 услуг: логистика, исследование и аналитика, профессиональное развитие, стратегический консалтинг, международные партнёрства.
 
-Когда просят ПОКАЗАТЬ раздел → вызови navigate. Когда просят ЗАПИСАТЬСЯ → open_link tcchub.kz. Когда просят НАПИСАТЬ → open_link wa.link/wrcagw.`;
+СРЕДНИЙ КОРИДОР:
+• ТМТМ: Китай→КЗ→Каспий→Азербайджан→Грузия→Европа. 6500км. 4.5млн т в 2024(+62%). 90637 TEU(+29%). 15-18 дней.
+• Казахстан: 36.9млн т транзита 2025. Хоргос 372К TEU, обработка 1 час. Цель 2030: 74млн т.
+
+КУРСЫ (3 штуки):
+• "Логистика с нуля": онлайн, 7 модулей (введение, морская, сухопутная, Incoterms, склады, авиа, карьера), 24ч, 2мес. 200+ выпускников. tcchub.kz
+• "Стратегическая навигация PRO": 72ч, 9 модулей, для руководителей. Управление рисками, цифровизация, международные стандарты.
+• "BRI Logistics": 24ч, 7 модулей. Стандарты ADB, AIIB, EBRD, OECD. Для аналитиков, госструктур, доноров.
+• Платформа TCC HUB: tcchub.kz, Moodle LMS, 9 курсов, 5 потоков.
+
+СТРАНИЦЫ САЙТА (для навигации):
+• index.html — Главная: глобус, live новости, статистика, эксперты
+• about.html — О платформе: история TCC, миссия, команда, timeline
+• analytics.html — Аналитика: 8 статей (ТМТМ, санкции, BRI, INSTC, Казахстан)
+• solutions.html — Решения: 5 услуг (логистика, аналитика, развитие, консалтинг, партнёрства)
+• education.html — Обучение: 3 курса, модули, эксперты, TCC HUB, сертификаты
+• projects.html — Проекты: ТМТМ, CILT KZ, TCC HUB, исследования
+• media.html — Медиа: статьи, интервью, события (New Vision Forum, Baku Energy Week)
+• partners.html — Партнёры: CILT KZ, ALT University, TITR, EBRD
+• contacts.html — Контакты: форма, адрес, телефон, соцсети
+• wiki.html — WikiЛогист: 270+ терминов, законы РК, документы (CMR, SMGS, AWB), конвенции, ресурсы
+• corridor.html — Исследователь маршрутов: интерактивный глобус, суда, самолёты, данные
+• live-data.html — Live данные: OpenSky авиатрафик, World Bank LPI, RSS новости
+
+ФУНКЦИИ:
+• Когда просят ПОКАЗАТЬ раздел → вызови navigate с нужной страницей
+• Когда просят ТУР или ЭКСКУРСИЮ → вызови start_tour
+• Когда просят ЗАПИСАТЬСЯ на курс → open_link https://tcchub.kz
+• Когда просят НАПИСАТЬ или СВЯЗАТЬСЯ → open_link https://wa.link/wrcagw
+• Когда просят НАЙТИ ТЕРМИН → open_link wiki.html
+• Когда говорят МАРШРУТЫ или КОРИДОР → open_link corridor.html
+
+ТУР: Если просят тур — вызови start_tour. Ты будешь рассказывать о каждом разделе по очереди, а функция будет переключать страницы. Порядок тура: главная → о нас → аналитика → решения → обучение → маршруты → вики → контакты.`;
 
   const TOOLS = [{
     functionDeclarations: [
@@ -68,6 +93,22 @@
             selector: { type: 'STRING', description: 'CSS selector' }
           },
           required: ['selector']
+        }
+      },
+      {
+        name: 'start_tour',
+        description: 'Начать экскурсию/тур по сайту. Вызывай когда говорят: тур, экскурсия, покажи всё, проведи по сайту.',
+        parameters: { type: 'OBJECT', properties: {} }
+      },
+      {
+        name: 'go_to_page',
+        description: 'Перейти на другую страницу сайта.',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            page: { type: 'STRING', description: 'Filename: index.html, about.html, analytics.html, solutions.html, education.html, corridor.html, wiki.html, contacts.html, projects.html, media.html, partners.html, live-data.html' }
+          },
+          required: ['page']
         }
       }
     ]
@@ -267,6 +308,12 @@
               setTimeout(() => { el.style.outline = ''; el.style.outlineOffset = ''; }, 3000);
             }
           }
+          if (call.name === 'go_to_page' && a.page) {
+            setTimeout(() => { window.location.href = a.page; }, 1500);
+          }
+          if (call.name === 'start_tour') {
+            startGuidedTour();
+          }
 
           ws.send(JSON.stringify({
             toolResponse: { functionResponses: [{ id: call.id, name: call.name, response: { result: { success: true } } }] }
@@ -412,5 +459,31 @@
   }
 
   function init() { injectCSS(); createUI(); document.getElementById('tcc-va-btn').addEventListener('click', handleClick); }
+  // ===== GUIDED TOUR =====
+  const tourSteps = [
+    { page: 'index.html', text: 'Это главная страница TransCaspian Cargo. Здесь глобус с маршрутом Среднего коридора, живые новости логистики и ключевая статистика.' },
+    { page: 'about.html', text: 'Страница О нас. Здесь история компании, миссия, наша команда экспертов и timeline развития TCC.' },
+    { page: 'analytics.html', text: 'Аналитика и исследования. 8 экспертных статей с реальными данными: Средний коридор, санкции, BRI, контейнерный рынок.' },
+    { page: 'solutions.html', text: 'Решения для бизнеса. 5 услуг: логистика, исследования, профессиональное развитие, стратегический консалтинг, международные партнёрства.' },
+    { page: 'education.html', text: 'Образование. 3 курса: Логистика с нуля, Стратегическая навигация PRO на 72 часа, и BRI Logistics. Платформа TCC HUB.' },
+    { page: 'corridor.html', text: 'Исследователь маршрутов. Интерактивный глобус с реальными данными: самолёты, суда, маршруты Среднего коридора.' },
+    { page: 'wiki.html', text: 'WikiЛогист. Энциклопедия с 270 терминами, законами Казахстана, документами, международными конвенциями.' },
+    { page: 'contacts.html', text: 'Контакты. Форма обратной связи, адрес в Атырау, телефон и социальные сети.' },
+  ];
+  let tourActive = false;
+  let tourStep = 0;
+
+  function startGuidedTour() {
+    tourActive = true;
+    tourStep = 0;
+    // Find current page
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    const currentIdx = tourSteps.findIndex(s => s.page === currentPage);
+    if (currentIdx >= 0) tourStep = currentIdx;
+    showStatus('Тур начался! Айша проведёт вас по сайту.', 3000);
+  }
+
+  // Tour can be continued by AI calling go_to_page for each step
+
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
