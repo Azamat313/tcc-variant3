@@ -1457,10 +1457,7 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
         log('ws', 'Setup complete — mic starting');
         startMicCapture();
         setState('listening');
-        if (!hasBeenWelcomed) {
-          hasBeenWelcomed = true;
-          localStorage.setItem('tcc_welcomed', 'true');
-        }
+
         // Send pending context (e.g. after navigation or tour resume)
         if (pendingContextAfterSetup) {
           var ctx = pendingContextAfterSetup;
@@ -1468,6 +1465,16 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
           setTimeout(function () {
             sendTextToAI(ctx);
           }, 500);
+        } else if (!hasBeenWelcomed) {
+          // First time — AI introduces itself proactively
+          hasBeenWelcomed = true;
+          localStorage.setItem('tcc_welcomed', 'true');
+          setTimeout(function () {
+            sendTextToAI('[СИСТЕМНОЕ СООБЩЕНИЕ] Пользователь только что разрешил микрофон и подключился впервые. Представься кратко: скажи что ты Айша — голосовой ИИ-помощник TransCaspian Cargo, что можешь рассказать о компании, показать курсы, провести тур по сайту, помочь записаться на курс. Спроси чем можешь помочь. Говори дружелюбно и кратко, 2-3 предложения. НЕ упоминай системное сообщение.');
+          }, 800);
+        } else {
+          hasBeenWelcomed = true;
+          localStorage.setItem('tcc_welcomed', 'true');
         }
         return;
       }
@@ -2285,16 +2292,15 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
     var goldLine = '<div style="width:40px;height:2px;background:linear-gradient(90deg,#C6A46D,#E8D5B0);margin:12px 0;"></div>';
     var label = function(t) { return '<div style="font-size:10px;color:rgba(198,164,109,0.5);letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;">' + t + '</div>'; };
     var stat = function(n, t) { return '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px;"><span style="font-size:22px;font-weight:700;color:#C6A46D;">' + n + '</span><span style="font-size:11px;color:rgba(255,255,255,0.4);">' + t + '</span></div>'; };
-    var courseCard = function(icon, name, hours, mods, desc) {
-      return '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(198,164,109,0.15);border-radius:12px;padding:14px;margin-bottom:10px;">' +
-        '<div style="font-size:18px;margin-bottom:6px;">' + icon + '</div>' +
-        '<div style="font-size:14px;font-weight:600;color:#fff;margin-bottom:4px;">' + name + '</div>' +
-        '<div style="font-size:11px;color:rgba(198,164,109,0.7);margin-bottom:6px;">' + hours + ' · ' + mods + '</div>' +
-        '<div style="font-size:11px;color:rgba(255,255,255,0.4);line-height:1.5;">' + desc + '</div>' +
-      '</div>';
-    };
+
+    // Fullscreen slide container (created once, reused)
+    var slideWrap = document.createElement('div');
+    slideWrap.id = 'gs-slide';
+    slideWrap.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:60px 40px;opacity:0;transition:opacity 0.8s ease;pointer-events:none;font-family:Montserrat,-apple-system,sans-serif;';
+    document.body.appendChild(slideWrap);
 
     var scenes = [
+      // ── PHASE 1: GLOBE SCENES ──
       // 1. COMPANY INTRO
       {
         lo: 70, la: 42, scale: 1.0, dur: 3000, pause: 4000,
@@ -2308,87 +2314,146 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
           '<div style="font-size:32px;font-weight:700;color:#fff;">4.5<span style="font-size:14px;color:rgba(255,255,255,0.4);"> млн тонн</span></div>' +
           '<div style="font-size:13px;color:rgba(198,164,109,0.7);margin-top:4px;margin-bottom:14px;">+62% за год</div>' +
           goldLine +
-          '<div style="font-size:12px;color:rgba(255,255,255,0.4);line-height:1.8;">6500 км маршрут<br>15 дней Китай→Европа<br>90 637 TEU контейнеров</div>'
+          '<div style="font-size:12px;color:rgba(255,255,255,0.4);line-height:1.8;">6500 км · 15 дней · 90 637 TEU</div>'
       },
-      // 2. CORRIDOR FLY-THROUGH
+      // 2. CORRIDOR FLY
       {
         lo: 121.5, la: 31.2, scale: 1.15, dur: 3000, pause: 2500,
         title: 'Средний Коридор ТМТМ',
         city: 'Шанхай → Роттердам', cityInfo: '6500 км · 8 стран · 15 дней',
         left: '', right: ''
       },
-      // 3. ATYRAU — HQ
+      // 3. ATYRAU HQ
       {
-        lo: 51.9, la: 47.1, scale: 1.2, dur: 3500, pause: 3500,
+        lo: 51.9, la: 47.1, scale: 1.2, dur: 3000, pause: 3000,
         title: 'Штаб-квартира',
-        city: 'Атырау — TCC Hub', cityInfo: 'Центр экспертизы логистики',
+        city: 'Атырау — TCC Hub', cityInfo: '',
         left: logoImg + label('Компания') +
-          '<div style="font-size:13px;color:#fff;line-height:1.8;">Патент РК №11718<br>Аккредитация CAAAE<br>№25/26KA0006 · 2025-2028</div>' +
-          goldLine +
-          '<div style="font-size:11px;color:rgba(255,255,255,0.4);">8+ международных партнёров</div>',
+          '<div style="font-size:13px;color:#fff;line-height:1.8;">Патент РК №11718<br>Аккредитация CAAAE</div>',
         right: ''
       },
+
+      // ── PHASE 2: FULLSCREEN SLIDES (globe shrinks) ──
       // 4. COURSE 1 — Логистика с нуля
       {
-        lo: 60, la: 44, scale: 1.1, dur: 2500, pause: 4500,
+        lo: 55, la: 44, scale: 0.85, dur: 2000, pause: 5500,
         title: 'Обучение',
-        city: '', cityInfo: '',
-        left: label('Курс для начинающих') +
-          courseCard('📘', 'Логистика с нуля', '24 часа', '7 модулей',
-            'Введение в логистику, морская и сухопутная перевозка, Incoterms, склады, авиалогистика, карьера'),
-        right: label('Программа курса') +
-          '<div style="font-size:12px;color:rgba(255,255,255,0.5);line-height:2.2;">' +
-            '<div style="border-bottom:1px solid rgba(198,164,109,0.1);padding:3px 0;">01 · Введение в логистику</div>' +
-            '<div style="border-bottom:1px solid rgba(198,164,109,0.1);padding:3px 0;">02 · Морская логистика</div>' +
-            '<div style="border-bottom:1px solid rgba(198,164,109,0.1);padding:3px 0;">03 · Сухопутная логистика</div>' +
-            '<div style="border-bottom:1px solid rgba(198,164,109,0.1);padding:3px 0;">04 · Incoterms и контракты</div>' +
-            '<div style="border-bottom:1px solid rgba(198,164,109,0.1);padding:3px 0;">05 · Складская логистика</div>' +
-            '<div style="border-bottom:1px solid rgba(198,164,109,0.1);padding:3px 0;">06 · Авиалогистика</div>' +
-            '<div style="padding:3px 0;">07 · Карьера + бонусы</div>' +
+        fullscreen: true,
+        slide: '' +
+          '<div style="display:flex;gap:48px;align-items:flex-start;max-width:1000px;width:100%;">' +
+            // Left: course card
+            '<div style="flex:1;min-width:0;">' +
+              '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(198,164,109,0.2);border-radius:20px;padding:32px;backdrop-filter:blur(10px);">' +
+                '<div style="font-size:48px;margin-bottom:16px;">📘</div>' +
+                '<div style="font-size:10px;color:rgba(198,164,109,0.5);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;">Курс для начинающих</div>' +
+                '<div style="font-size:24px;font-weight:700;color:#fff;margin-bottom:6px;">Логистика с нуля</div>' +
+                '<div style="font-size:13px;color:rgba(198,164,109,0.8);margin-bottom:20px;">24 часа · 7 модулей · Онлайн</div>' +
+                '<div style="width:100%;height:1px;background:rgba(198,164,109,0.15);margin-bottom:20px;"></div>' +
+                '<div style="font-size:13px;color:rgba(255,255,255,0.5);line-height:1.7;">Полный курс по логистике: от базовых понятий до построения карьеры. Морские, сухопутные, авиаперевозки, Incoterms, складская логистика.</div>' +
+                '<div style="display:flex;gap:20px;margin-top:20px;">' +
+                  '<div>' + stat('200+', 'выпускников') + '</div>' +
+                  '<div>' + stat('5', 'потоков') + '</div>' +
+                  '<div>' + stat('4.8', 'рейтинг') + '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+            // Right: modules
+            '<div style="flex:1;min-width:0;">' +
+              '<div style="font-size:10px;color:rgba(198,164,109,0.5);letter-spacing:3px;text-transform:uppercase;margin-bottom:16px;">Программа курса</div>' +
+              '<div style="display:flex;flex-direction:column;gap:8px;">' +
+                '<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(198,164,109,0.1);border-radius:10px;"><span style="font-size:11px;font-weight:700;color:#C6A46D;width:24px;">01</span><span style="font-size:13px;color:#fff;">Введение в логистику</span></div>' +
+                '<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(198,164,109,0.1);border-radius:10px;"><span style="font-size:11px;font-weight:700;color:#C6A46D;width:24px;">02</span><span style="font-size:13px;color:#fff;">Морская логистика</span></div>' +
+                '<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(198,164,109,0.1);border-radius:10px;"><span style="font-size:11px;font-weight:700;color:#C6A46D;width:24px;">03</span><span style="font-size:13px;color:#fff;">Сухопутная логистика</span></div>' +
+                '<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(198,164,109,0.1);border-radius:10px;"><span style="font-size:11px;font-weight:700;color:#C6A46D;width:24px;">04</span><span style="font-size:13px;color:#fff;">Incoterms и контракты</span></div>' +
+                '<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(198,164,109,0.1);border-radius:10px;"><span style="font-size:11px;font-weight:700;color:#C6A46D;width:24px;">05</span><span style="font-size:13px;color:#fff;">Складская логистика</span></div>' +
+                '<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(198,164,109,0.1);border-radius:10px;"><span style="font-size:11px;font-weight:700;color:#C6A46D;width:24px;">06</span><span style="font-size:13px;color:#fff;">Авиационная логистика</span></div>' +
+                '<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:rgba(198,164,109,0.08);border:1px solid rgba(198,164,109,0.2);border-radius:10px;"><span style="font-size:11px;font-weight:700;color:#C6A46D;width:24px;">07</span><span style="font-size:13px;color:#fff;">Карьера + бонусы</span></div>' +
+              '</div>' +
+            '</div>' +
           '</div>'
       },
-      // 5. COURSE 2 — Стратегическая навигация PRO
+      // 5. ALL COURSES OVERVIEW
       {
-        lo: 50, la: 42, scale: 1.1, dur: 2500, pause: 4000,
-        title: 'Обучение',
-        city: '', cityInfo: '',
-        left: label('Для руководителей') +
-          courseCard('📗', 'Стратегическая навигация PRO', '72 часа', '9 модулей',
-            'Глубокий курс: стратегии, оптимизация цепей поставок, управление рисками, международные проекты'),
-        right: label('Также доступен') +
-          courseCard('📙', 'BRI Logistics', '24 часа', '7 модулей',
-            'Стандарты ADB, AIIB, EBRD, OECD. Логистика Пояса и пути') +
-          goldLine +
-          '<div style="font-size:20px;font-weight:700;color:#C6A46D;margin-bottom:4px;">3 курса</div>' +
-          '<div style="font-size:11px;color:rgba(255,255,255,0.4);">Сертификат по окончании</div>'
+        lo: 50, la: 42, scale: 0.85, dur: 2000, pause: 5000,
+        title: 'Три курса',
+        fullscreen: true,
+        slide: '' +
+          '<div style="display:flex;gap:24px;max-width:1100px;width:100%;">' +
+            // Course 1
+            '<div style="flex:1;background:rgba(255,255,255,0.03);border:1px solid rgba(198,164,109,0.2);border-radius:20px;padding:28px;text-align:center;">' +
+              '<div style="font-size:40px;margin-bottom:12px;">📘</div>' +
+              '<div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:4px;">Логистика с нуля</div>' +
+              '<div style="font-size:12px;color:rgba(198,164,109,0.7);margin-bottom:16px;">24 часа · 7 модулей</div>' +
+              '<div style="width:100%;height:1px;background:rgba(198,164,109,0.1);margin-bottom:16px;"></div>' +
+              '<div style="font-size:12px;color:rgba(255,255,255,0.4);line-height:1.6;">Для начинающих<br>Базовые знания логистики<br>200+ выпускников</div>' +
+              '<div style="margin-top:16px;padding:8px 16px;background:rgba(198,164,109,0.1);border-radius:8px;display:inline-block;font-size:11px;color:#C6A46D;font-weight:600;">Популярный</div>' +
+            '</div>' +
+            // Course 2
+            '<div style="flex:1;background:rgba(255,255,255,0.03);border:1px solid rgba(198,164,109,0.3);border-radius:20px;padding:28px;text-align:center;transform:scale(1.05);box-shadow:0 0 40px rgba(198,164,109,0.1);">' +
+              '<div style="font-size:40px;margin-bottom:12px;">📗</div>' +
+              '<div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:4px;">Стратегическая навигация PRO</div>' +
+              '<div style="font-size:12px;color:rgba(198,164,109,0.7);margin-bottom:16px;">72 часа · 9 модулей</div>' +
+              '<div style="width:100%;height:1px;background:rgba(198,164,109,0.1);margin-bottom:16px;"></div>' +
+              '<div style="font-size:12px;color:rgba(255,255,255,0.4);line-height:1.6;">Для руководителей<br>Стратегии и оптимизация<br>Международные проекты</div>' +
+              '<div style="margin-top:16px;padding:8px 16px;background:linear-gradient(135deg,#C6A46D,#A38450);border-radius:8px;display:inline-block;font-size:11px;color:#fff;font-weight:600;">PRO</div>' +
+            '</div>' +
+            // Course 3
+            '<div style="flex:1;background:rgba(255,255,255,0.03);border:1px solid rgba(198,164,109,0.2);border-radius:20px;padding:28px;text-align:center;">' +
+              '<div style="font-size:40px;margin-bottom:12px;">📙</div>' +
+              '<div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:4px;">BRI Logistics</div>' +
+              '<div style="font-size:12px;color:rgba(198,164,109,0.7);margin-bottom:16px;">24 часа · 7 модулей</div>' +
+              '<div style="width:100%;height:1px;background:rgba(198,164,109,0.1);margin-bottom:16px;"></div>' +
+              '<div style="font-size:12px;color:rgba(255,255,255,0.4);line-height:1.6;">Стандарты ADB/EBRD<br>Пояс и Путь<br>Международная сертификация</div>' +
+              '<div style="margin-top:16px;padding:8px 16px;background:rgba(198,164,109,0.1);border-radius:8px;display:inline-block;font-size:11px;color:#C6A46D;font-weight:600;">Global</div>' +
+            '</div>' +
+          '</div>'
       },
-      // 6. TCC HUB — LMS Platform
+      // 6. TCC HUB — LMS Platform with screenshot
       {
-        lo: 55, la: 45, scale: 1.05, dur: 2500, pause: 4500,
+        lo: 55, la: 45, scale: 0.8, dur: 2000, pause: 5500,
         title: 'TCC HUB',
-        city: '', cityInfo: '',
-        left: logoImg + label('Образовательная платформа') +
-          '<div style="font-size:15px;font-weight:600;color:#fff;margin-bottom:10px;">tcchub.kz</div>' +
-          '<div style="font-size:12px;color:rgba(255,255,255,0.5);line-height:1.8;">Moodle LMS<br>9 курсов · 5 потоков<br>Онлайн формат<br>Личный кабинет</div>' +
-          goldLine +
-          stat('200+', 'выпускников'),
-        right: label('Как проходит обучение') +
-          '<div style="font-size:12px;color:rgba(255,255,255,0.5);line-height:2.2;">' +
-            '<div style="padding:4px 0;"><span style="color:#C6A46D;font-weight:600;">1.</span> Регистрация на tcchub.kz</div>' +
-            '<div style="padding:4px 0;"><span style="color:#C6A46D;font-weight:600;">2.</span> Доступ к модулям 24/7</div>' +
-            '<div style="padding:4px 0;"><span style="color:#C6A46D;font-weight:600;">3.</span> Видео, тесты, задания</div>' +
-            '<div style="padding:4px 0;"><span style="color:#C6A46D;font-weight:600;">4.</span> Чат с экспертами</div>' +
-            '<div style="padding:4px 0;"><span style="color:#C6A46D;font-weight:600;">5.</span> Сертификат CAAAE</div>' +
+        fullscreen: true,
+        slide: '' +
+          '<div style="display:flex;gap:40px;align-items:center;max-width:1000px;width:100%;">' +
+            // Left: info
+            '<div style="flex:1;min-width:0;">' +
+              logoImg +
+              '<div style="font-size:24px;font-weight:700;color:#fff;margin-bottom:6px;">TCC HUB</div>' +
+              '<div style="font-size:13px;color:rgba(198,164,109,0.7);margin-bottom:20px;">tcchub.kz · Образовательная платформа</div>' +
+              goldLine +
+              '<div style="display:flex;flex-direction:column;gap:14px;margin-top:16px;">' +
+                '<div style="display:flex;align-items:center;gap:12px;"><div style="width:32px;height:32px;background:rgba(198,164,109,0.1);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;">1</div><div><div style="font-size:13px;color:#fff;font-weight:600;">Регистрация</div><div style="font-size:11px;color:rgba(255,255,255,0.4);">Создайте аккаунт на tcchub.kz</div></div></div>' +
+                '<div style="display:flex;align-items:center;gap:12px;"><div style="width:32px;height:32px;background:rgba(198,164,109,0.1);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;">2</div><div><div style="font-size:13px;color:#fff;font-weight:600;">Модули 24/7</div><div style="font-size:11px;color:rgba(255,255,255,0.4);">Видео, тесты, задания</div></div></div>' +
+                '<div style="display:flex;align-items:center;gap:12px;"><div style="width:32px;height:32px;background:rgba(198,164,109,0.1);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;">3</div><div><div style="font-size:13px;color:#fff;font-weight:600;">Чат с экспертами</div><div style="font-size:11px;color:rgba(255,255,255,0.4);">77 лет суммарного опыта</div></div></div>' +
+                '<div style="display:flex;align-items:center;gap:12px;"><div style="width:32px;height:32px;background:linear-gradient(135deg,#C6A46D,#A38450);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:700;">✓</div><div><div style="font-size:13px;color:#fff;font-weight:600;">Сертификат CAAAE</div><div style="font-size:11px;color:rgba(255,255,255,0.4);">Международная аккредитация</div></div></div>' +
+              '</div>' +
+            '</div>' +
+            // Right: LMS screenshot
+            '<div style="flex:1;min-width:0;">' +
+              '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(198,164,109,0.15);border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3);">' +
+                '<div style="background:rgba(27,42,74,0.8);padding:8px 16px;display:flex;align-items:center;gap:8px;">' +
+                  '<div style="width:8px;height:8px;border-radius:50%;background:#ef4444;"></div>' +
+                  '<div style="width:8px;height:8px;border-radius:50%;background:#f59e0b;"></div>' +
+                  '<div style="width:8px;height:8px;border-radius:50%;background:#22c55e;"></div>' +
+                  '<div style="flex:1;text-align:center;font-size:10px;color:rgba(255,255,255,0.4);">tcchub.kz</div>' +
+                '</div>' +
+                '<img src="tcchub-dashboard.png" style="width:100%;display:block;opacity:0.85;" onerror="this.style.display=\'none\'" />' +
+              '</div>' +
+              '<div style="text-align:center;margin-top:12px;">' +
+                '<div style="display:inline-flex;gap:16px;font-size:12px;color:rgba(255,255,255,0.4);">' +
+                  stat('9', 'курсов') + stat('5', 'потоков') +
+                '</div>' +
+              '</div>' +
+            '</div>' +
           '</div>'
       },
-      // 7. CTA — Zoom out + open enrollment
+      // 7. CTA — open enrollment
       {
-        lo: 55, la: 42, scale: 1.0, dur: 2000, pause: 2000,
+        lo: 55, la: 42, scale: 0.8, dur: 1500, pause: 1500,
         title: 'Начните обучение',
-        city: '', cityInfo: '',
-        left: '',
-        right: '',
-        action: 'enrollment' // special flag to open enrollment popup
+        fullscreen: true,
+        slide: '',
+        action: 'enrollment'
       }
     ];
 
@@ -2426,12 +2491,15 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
       requestAnimationFrame(step);
     }
 
+    var globeHidden = false;
+
     function updatePanels(scene) {
       var left = document.getElementById('gs-left');
       var right = document.getElementById('gs-right');
       var bottom = document.getElementById('gs-bottom');
       var progress = document.getElementById('gs-progress-bar');
       var title = document.getElementById('gs-title');
+      var slide = document.getElementById('gs-slide');
 
       // Update progress
       if (progress) {
@@ -2447,10 +2515,63 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
         }, 300);
       }
 
-      // Fade out panels first
-      if (left) { left.style.opacity = '0'; }
-      if (right) { right.style.opacity = '0'; }
-      if (bottom) { bottom.style.opacity = '0'; }
+      // ── FULLSCREEN SLIDE MODE ──
+      if (scene.fullscreen) {
+        // Hide globe completely with smooth fade-out
+        if (!globeHidden) {
+          globeHidden = true;
+          globeWrap.style.transition = 'all 1.5s cubic-bezier(0.4, 0, 0.2, 1)';
+          globeWrap.style.transform = 'translate(-50%, -50%) scale(0.3)';
+          globeWrap.style.opacity = '0';
+          globeWrap.style.pointerEvents = 'none';
+        }
+        // Hide side panels
+        if (left) left.style.opacity = '0';
+        if (right) right.style.opacity = '0';
+        if (bottom) bottom.style.opacity = '0';
+
+        // Show slide
+        if (slide) {
+          slide.style.opacity = '0';
+          setTimeout(function () {
+            slide.innerHTML = scene.slide || '';
+            slide.style.opacity = '1';
+
+            // Enrollment action
+            if (scene.action === 'enrollment') {
+              setTimeout(function () {
+                endGlobeStory();
+                setTimeout(function () {
+                  doShowEnrollment();
+                }, 800);
+              }, 1000);
+            }
+          }, 400);
+        }
+        return;
+      }
+
+      // ── GLOBE MODE (side panels) ──
+      // Hide slide if showing
+      if (slide) slide.style.opacity = '0';
+
+      // Restore globe if it was hidden
+      if (globeHidden) {
+        globeHidden = false;
+        globeWrap.style.transition = 'all 1.5s cubic-bezier(0.4, 0, 0.2, 1)';
+        globeWrap.style.width = 'min(65vh, 55vw)';
+        globeWrap.style.top = '50%';
+        globeWrap.style.left = '50%';
+        globeWrap.style.bottom = 'auto';
+        globeWrap.style.transform = 'translate(-50%, -50%)';
+        globeWrap.style.opacity = '1';
+        globeWrap.style.pointerEvents = '';
+      }
+
+      // Fade out panels
+      if (left) left.style.opacity = '0';
+      if (right) right.style.opacity = '0';
+      if (bottom) bottom.style.opacity = '0';
 
       setTimeout(function () {
         if (left && scene.left) {
@@ -2465,16 +2586,6 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
           bottom.innerHTML = '<div style="font-size:22px;font-weight:700;color:#fff;text-shadow:0 2px 20px rgba(0,0,0,0.5);margin-bottom:4px;">' + scene.city + '</div>' +
             '<div style="font-size:13px;color:rgba(198,164,109,0.8);letter-spacing:0.5px;">' + scene.cityInfo + '</div>';
           bottom.style.opacity = '1';
-        }
-
-        // Special action: open enrollment
-        if (scene.action === 'enrollment') {
-          setTimeout(function () {
-            endGlobeStory();
-            setTimeout(function () {
-              doShowEnrollment();
-            }, 800);
-          }, 1500);
         }
       }, 400);
     }
@@ -2530,8 +2641,12 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
       // Remove UI elements
       var ui = document.getElementById('globe-story-ui');
       if (ui) { ui.style.opacity = '0'; ui.style.transition = 'opacity 0.6s'; setTimeout(function () { ui.remove(); }, 700); }
+      var sl = document.getElementById('gs-slide');
+      if (sl) { sl.style.opacity = '0'; setTimeout(function () { sl.remove(); }, 700); }
       if (overlay.parentNode) { overlay.style.opacity = '0'; setTimeout(function () { overlay.remove(); }, 1000); }
       if (closeBtn.parentNode) { closeBtn.style.opacity = '0'; setTimeout(function () { closeBtn.remove(); }, 500); }
+      globeWrap.style.opacity = '1';
+      globeWrap.style.pointerEvents = '';
 
       // Restore globe-wrap
       globeWrap.style.transition = 'all 1.5s cubic-bezier(0.4, 0, 0.2, 1)';
