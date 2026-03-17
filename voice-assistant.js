@@ -17,11 +17,25 @@
   const INPUT_SAMPLE_RATE = 16000;
   const OUTPUT_SAMPLE_RATE = 24000;
   const BUFFER_SIZE = 2048;
-  const SILENCE_TIMEOUT = 15000;
+  const SILENCE_TIMEOUT = 60000;
   const WELCOME_SHOW_DELAY = 2000;
   const WELCOME_FADE_DELAY = 10000;
   const RECONNECT_DELAY = 5000;
   const TOUR_STEP_DELAY = 2500;
+
+  // ─── DEBUG LOG (accessible via window.ayshaLog) ─────────────────────
+  var debugLog = [];
+  function log(type, msg, data) {
+    var entry = { t: Date.now(), type: type, msg: msg };
+    if (data !== undefined) entry.data = typeof data === 'object' ? JSON.stringify(data).substring(0, 300) : String(data);
+    debugLog.push(entry);
+    if (debugLog.length > 100) debugLog.shift();
+    console.log('[Aysha][' + type + '] ' + msg, data || '');
+  }
+  window.ayshaLog = debugLog;
+  window.ayshaState = function () {
+    return { state: state, wsReady: ws ? ws.readyState : -1, hasMic: !!micStream, hasAudio: !!audioCtx, logCount: debugLog.length, lastLog: debugLog.length ? debugLog[debugLog.length - 1] : null };
+  };
 
   // ─── STATE ────────────────────────────────────────────────────────────
   let state = 'idle';
@@ -33,7 +47,9 @@
   let gainNode = null;
   let playbackQueue = [];
   let isPlaying = false;
+  let ignoreAudioUntilTurn = false; // ignore stale audio after interrupt
   let silenceTimer = null;
+  let sessionActive = false; // toggle mode
   let tourActive = false;
   let tourStep = 0;
   let hasBeenWelcomed = localStorage.getItem('tcc_welcomed') === 'true';
@@ -43,6 +59,7 @@
   let welcomeFadeTimer = null;
   let nextPlaybackTime = 0;
   let cinematicResolve = null;
+  let pendingContextAfterSetup = null; // text to send after WS setup completes
 
   // ─── SYSTEM PROMPT ────────────────────────────────────────────────────
   const SYSTEM_PROMPT = `Ты — Айша, голосовой гид и ассистент сайта TransCaspian Cargo. Говори по-русски, кратко (1-2 предложения), дружелюбно и профессионально.
@@ -92,13 +109,17 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
 - Отвечай КРАТКО: 1-2 предложения максимум
 - Когда просят ПОКАЗАТЬ → вызови navigate или scroll_to
 - Когда просят ТУР → вызови start_tour
-- Когда просят рассказать О КОМПАНИИ → вызови show_cinematic type=company, затем отвечай
-- Когда просят показать МАРШРУТ/КОРИДОР → вызови show_cinematic type=corridor, затем navigate corridor.html
+- Когда просят рассказать О КОМПАНИИ на главной странице → вызови show_cinematic type=globe_story и рассказывай О КОМПАНИИ пока глобус анимируется
+- Когда просят рассказать О КОМПАНИИ на другой странице → вызови show_cinematic type=company
+- Когда просят показать МАРШРУТ/КОРИДОР → вызови show_cinematic type=globe_story, расскажи о Среднем коридоре
+- Когда просят ТУР и мы на главной → сначала вызови show_cinematic type=globe_story, затем продолжи тур
 - Когда просят КУРСЫ → вызови show_cinematic type=course
 - Когда просят КОМАНДУ → вызови show_cinematic type=team
 - Когда просят СТАТИСТИКУ → вызови show_cinematic type=stats
-- Когда просят ЗАПИСАТЬСЯ → вызови open_external с https://tcchub.kz
+- Когда просят ЧТО НА ЭКРАНЕ / ЧТО ВИДНО / ГДЕ Я → вызови describe_page и расскажи
+- Когда просят ЗАПИСАТЬСЯ НА КУРС → вызови show_enrollment. Затем спроси email. Когда пользователь продиктует email, преобразуй его (собака→@, точка→., пробелы убери) и вызови fill_email с результатом. Подтверди email пользователю перед отправкой.
 - Когда просят СВЯЗАТЬСЯ → вызови open_external с https://wa.link/wrcagw
+- Когда получаешь [СИСТЕМНОЕ СООБЩЕНИЕ] — это автоматический контекст после навигации. Расскажи пользователю кратко что он видит, не упоминай что это системное сообщение.
 - Можно ПРЕРВАТЬ тебя в любой момент — это нормально`;
 
   // ─── TOOL DECLARATIONS ────────────────────────────────────────────────
@@ -181,16 +202,53 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
         },
         {
           name: 'show_cinematic',
-          description: 'Show an animated cinematic presentation. Types: company (about the company), corridor (Middle Corridor route), course (education courses), stats (key statistics), team (expert team).',
+          description: 'Show an animated cinematic presentation. Types: globe_story (BEST — immersive globe zoom along Middle Corridor, use on main page), company (about the company overlay), corridor (route line), course (education), stats (statistics), team (experts).',
           parameters: {
             type: 'OBJECT',
             properties: {
               type: {
                 type: 'STRING',
-                description: 'Type of cinematic: company, corridor, course, stats, team'
+                description: 'Type of cinematic: globe_story, company, corridor, course, stats, team'
               }
             },
             required: ['type']
+          }
+        },
+        {
+          name: 'describe_page',
+          description: 'Get a description of what is currently visible on the page. Call this to know what the user is looking at.',
+          parameters: {
+            type: 'OBJECT',
+            properties: {},
+            required: []
+          }
+        },
+        {
+          name: 'show_enrollment',
+          description: 'Show the course enrollment popup form. Call this when the user wants to sign up for a course.',
+          parameters: {
+            type: 'OBJECT',
+            properties: {
+              course: {
+                type: 'STRING',
+                description: 'Course name: logistics_basics, strategic_nav, bri_logistics. Optional — user can choose in the form.'
+              }
+            },
+            required: []
+          }
+        },
+        {
+          name: 'fill_email',
+          description: 'Fill the email field in the enrollment form with the dictated email. Convert spoken Russian to email format: собака→@, точка→., remove spaces.',
+          parameters: {
+            type: 'OBJECT',
+            properties: {
+              email: {
+                type: 'STRING',
+                description: 'The email address to fill in, already converted to proper format (e.g. user@gmail.com)'
+              }
+            },
+            required: ['email']
           }
         }
       ]
@@ -210,6 +268,41 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
     { action: 'navigate', page: 'contacts.html', narration: 'Контакты. Можете написать нам или позвонить.' },
     { action: 'navigate', page: 'index.html', narration: 'Это был тур по сайту. Спрашивайте, если есть вопросы!' }
   ];
+
+  // ─── PAGE CONTEXT ────────────────────────────────────────────────────
+  var PAGE_CONTEXTS = {
+    'index.html': 'Главная страница. Вверху — интерактивный 3D глобус с маршрутом Среднего коридора. Ниже — панель статистики (4.5 млн тонн, +62% рост, 90637 TEU, 15 дней транзита). Далее — live RSS новости из 9 источников логистики, секция направлений работы, карточки экспертов, витрина TCC HUB, сертификаты и патент.',
+    'about.html': 'Страница "О платформе". История TransCaspian Cargo, миссия компании, таймлайн развития 2015-2025, карточка основателя Рустема Бисалиева, 4 эксперта с опытом.',
+    'analytics.html': 'Страница "Аналитика". 8 исследовательских статей с реальными данными: ТМТМ, санкции, Пояс и путь, INSTC, логистика Казахстана.',
+    'solutions.html': 'Страница "Решения". 5 услуг TCC: логистика, исследования и аналитика, профессиональное развитие, стратегический консалтинг, международные партнёрства. Этапы работы.',
+    'education.html': 'Страница "Обучение". 3 курса: "Логистика с нуля" (24ч, 7 модулей), "Стратегическая навигация PRO" (72ч, 9 модулей), "BRI Logistics" (24ч, 7 модулей). Мокап TCC HUB, сертификаты.',
+    'corridor.html': 'Страница "Маршруты". Интерактивный глобус-исследователь с 4 слоями: маршруты, суда, самолёты, данные. Реальные API (OpenSky, stat.gov.kz, RSS). Правая панель с таймлайном.',
+    'wiki.html': 'WikiЛогист. 270+ терминов логистики в 18 категориях, пагинация по 24. Вкладка "Законы и документы" — 16 законов РК, 3 ЕАЭУ, 14 документов, 11 конвенций.',
+    'contacts.html': 'Страница "Контакты". Форма обратной связи, адрес (Атырау, пр. Студенческий 52), телефон +7 771 054 4898, email info@tc-cargo.kz, ссылки на соцсети.',
+    'projects.html': 'Страница "Проекты". 4 отраслевых проекта компании.',
+    'media.html': 'Страница "Медиа". 6+ медиа-материалов, реальные события — New Vision Forum, Baku Energy Week.',
+    'partners.html': 'Страница "Партнёры". 8 партнёров по категориям: CILT KZ, ALT University, TITR, EBRD, EU Global Gateway, KTZ, LMS.KZ, CALTA.',
+    'live-data.html': 'Страница "Live данные". Реальные API данные: OpenSky (самолёты), World Bank LPI, RSS ленты, торговые данные КЗ.'
+  };
+
+  function getPageContext() {
+    var page = window.location.pathname.split('/').pop() || 'index.html';
+    return { page: page, description: PAGE_CONTEXTS[page] || 'Страница ' + page };
+  }
+
+  function sendTextToAI(text) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      log('warn', 'sendTextToAI failed — WS not open', { wsReady: ws ? ws.readyState : 'null' });
+      return;
+    }
+    log('send', 'Text to AI', text.substring(0, 100));
+    ws.send(JSON.stringify({
+      clientContent: {
+        turns: [{ role: 'user', parts: [{ text: text }] }],
+        turnComplete: true
+      }
+    }));
+  }
 
   // ─── CSS INJECTION ────────────────────────────────────────────────────
   function injectStyles() {
@@ -1051,7 +1144,7 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
     bubble.id = 'aysha-welcome';
     bubble.innerHTML = `
       <button class="welcome-close" aria-label="Close">&times;</button>
-      <p class="welcome-text">Привет! Я Айша \u2014 ваш голосовой гид \uD83D\uDC4B</p>
+      <p class="welcome-text">Привет! Я Айша \u2014 ваш голосовой гид</p>
       <p class="welcome-sub">Нажмите чтобы начать</p>
     `;
     document.body.appendChild(bubble);
@@ -1084,6 +1177,7 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
 
   // ─── UI STATE UPDATES ─────────────────────────────────────────────────
   function setState(newState) {
+    log('state', state + ' → ' + newState);
     state = newState;
     var btn = document.getElementById('aysha-btn');
     if (!btn) return;
@@ -1145,12 +1239,14 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
     }, duration);
   }
 
-  // ─── SILENCE TIMER ────────────────────────────────────────────────────
+  // ─── INACTIVITY TIMER ────────────────────────────────────────────────
   function startSilenceTimer() {
     resetSilenceTimer();
     silenceTimer = setTimeout(function () {
       if (state === 'listening') {
-        setState('idle');
+        log('timer', 'Inactivity timeout — disconnecting');
+        sessionActive = false;
+        stopSession();
       }
     }, SILENCE_TIMEOUT);
   }
@@ -1162,7 +1258,7 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
     }
   }
 
-  // ─── BUTTON CLICK HANDLER ─────────────────────────────────────────────
+  // ─── TOGGLE BUTTON HANDLER ────────────────────────────────────────────
   function onButtonClick() {
     dismissWelcome();
 
@@ -1170,9 +1266,13 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
       if (firstInteraction) {
         showPermissionDialog();
       } else {
+        log('toggle', 'Starting session');
+        sessionActive = true;
         startSession();
       }
-    } else if (state === 'listening' || state === 'speaking' || state === 'thinking') {
+    } else {
+      log('toggle', 'Stopping session');
+      sessionActive = false;
       stopSession();
     }
   }
@@ -1191,6 +1291,7 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
   function onAllowMic() {
     hidePermissionDialog();
     firstInteraction = false;
+    sessionActive = true;
     startSession();
   }
 
@@ -1221,7 +1322,7 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
       connectWebSocket();
 
     } catch (err) {
-      console.error('[Aysha] Mic error:', err);
+      log('error', 'Mic/session error', { name: err.name, msg: err.message });
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
         showToast('Микрофон недоступен', 4000);
       } else {
@@ -1235,8 +1336,11 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
     resetSilenceTimer();
     stopMicCapture();
     stopPlayback();
+    sessionActive = false;
 
     if (ws && ws.readyState === WebSocket.OPEN) {
+      // Signal end of audio stream before closing
+      try { ws.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } })); } catch(e) {}
       ws.close();
     }
     ws = null;
@@ -1279,6 +1383,13 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
               }
             }
           },
+          realtimeInputConfig: {
+            automaticActivityDetection: {
+              disabled: false,
+              startOfSpeechSensitivity: 'START_SENSITIVITY_LOW',
+              endOfSpeechSensitivity: 'END_SENSITIVITY_LOW'
+            }
+          },
           systemInstruction: {
             parts: [{ text: SYSTEM_PROMPT }]
           },
@@ -1286,7 +1397,7 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
         }
       };
 
-      console.log('[Aysha] Sending setup:', JSON.stringify(setupMsg).substring(0,200));
+      log('ws', 'Setup sent');
       ws.send(JSON.stringify(setupMsg));
     };
 
@@ -1295,20 +1406,23 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
     };
 
     ws.onerror = function (err) {
-      console.error('[Aysha] WS error:', err);
+      log('error', 'WS error', err);
     };
 
     ws.onclose = function (event) {
-      console.log('[Aysha] WS closed, code:', event.code);
-      if (state !== 'idle' && state !== 'error') {
-        showToast('Ошибка соединения', 4000);
-        setState('error');
+      log('ws', 'WS closed', { code: event.code, reason: event.reason });
+      // Don't show error if navigating or if normal close
+      var isNavigating = sessionStorage.getItem('aysha_reconnect') === 'true' || sessionStorage.getItem('aysha_tour_active') === 'true';
+      if (state !== 'idle' && state !== 'error' && !isNavigating) {
+        log('ws', 'Connection lost, will auto-reconnect');
+        // Don't show error toast — just quietly reconnect
         cleanupAudio();
+        setState('idle');
+        // Auto-reconnect after short delay
         reconnectTimer = setTimeout(function () {
-          if (state === 'error') {
-            startSession();
-          }
-        }, RECONNECT_DELAY);
+          log('ws', 'Auto-reconnecting...');
+          startSession();
+        }, 1000);
       }
     };
   }
@@ -1340,11 +1454,20 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
   function processMessage(msg) {
 
       if (msg.setupComplete) {
+        log('ws', 'Setup complete — mic starting');
         startMicCapture();
         setState('listening');
         if (!hasBeenWelcomed) {
           hasBeenWelcomed = true;
           localStorage.setItem('tcc_welcomed', 'true');
+        }
+        // Send pending context (e.g. after navigation or tour resume)
+        if (pendingContextAfterSetup) {
+          var ctx = pendingContextAfterSetup;
+          pendingContextAfterSetup = null;
+          setTimeout(function () {
+            sendTextToAI(ctx);
+          }, 500);
         }
         return;
       }
@@ -1354,30 +1477,40 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
       }
 
       if (msg.toolCall) {
+        log('tool', 'Tool call received', msg.toolCall.functionCalls ? msg.toolCall.functionCalls.map(function(f){return f.name+'('+JSON.stringify(f.args||{})+')'}).join(', ') : 'no calls');
         handleToolCall(msg.toolCall);
       }
   }
 
   function handleServerContent(content) {
     if (content.turnComplete) {
+      log('ai', 'Turn complete');
       setTimeout(function () {
         if (state === 'speaking' || state === 'thinking') {
           setState('listening');
-          startSilenceTimer();
         }
       }, 300);
       return;
     }
 
     if (content.interrupted) {
+      log('ai', 'Interrupted — flushing all audio');
+      ignoreAudioUntilTurn = true;
       stopPlayback();
       setState('listening');
       return;
     }
 
     if (content.modelTurn && content.modelTurn.parts) {
+      // New model turn = fresh response, stop ignoring
+      if (ignoreAudioUntilTurn) {
+        ignoreAudioUntilTurn = false;
+        stopPlayback(); // clear any residual
+        log('ai', 'New turn after interrupt — accepting audio');
+      }
       content.modelTurn.parts.forEach(function (part) {
         if (part.inlineData && part.inlineData.mimeType && part.inlineData.mimeType.indexOf('audio') !== -1) {
+          if (ignoreAudioUntilTurn) return; // skip stale chunks
           setState('speaking');
           playAudioChunk(part.inlineData.data);
         }
@@ -1410,6 +1543,7 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
   }
 
   function executeFunction(name, args) {
+    log('exec', 'Executing: ' + name, args);
     switch (name) {
       case 'navigate':
         return doNavigate(args.page);
@@ -1425,6 +1559,12 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
         return doShowNextTourStep();
       case 'show_cinematic':
         return doShowCinematic(args.type);
+      case 'describe_page':
+        return getPageContext();
+      case 'show_enrollment':
+        return doShowEnrollment(args.course);
+      case 'fill_email':
+        return doFillEmail(args.email);
       default:
         return { success: false, error: 'Unknown function: ' + name };
     }
@@ -1439,6 +1579,8 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
     if (validPages.indexOf(page) === -1) {
       return { success: false, error: 'Invalid page: ' + page };
     }
+    // Save auto-reconnect flag so assistant resumes on new page
+    sessionStorage.setItem('aysha_reconnect', 'true');
     var currentPath = window.location.pathname;
     var basePath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
     window.location.href = basePath + page;
@@ -1531,9 +1673,19 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
   // ═════════════════════════════════════════════════════════════════════
 
   function doShowCinematic(type) {
-    var validTypes = ['company', 'corridor', 'course', 'stats', 'team'];
+    var validTypes = ['company', 'corridor', 'course', 'stats', 'team', 'globe_story'];
     if (validTypes.indexOf(type) === -1) {
       return { success: false, error: 'Invalid cinematic type: ' + type };
+    }
+
+    if (type === 'globe_story') {
+      if (!window.tccGlobe) {
+        // Not on main page, fallback to company cinematic
+        showCinematic('company');
+        return { success: true, cinematic: 'company', note: 'Fallback: not on main page' };
+      }
+      startGlobeStory();
+      return { success: true, cinematic: 'globe_story' };
     }
 
     showCinematic(type);
@@ -1810,6 +1962,552 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
     }
   }
 
+  // ═════════════════════════════════════════════════════════════════════
+  // ENROLLMENT POPUP
+  // ═════════════════════════════════════════════════════════════════════
+
+  var enrollmentPopupOpen = false;
+
+  function doShowEnrollment(course) {
+    if (enrollmentPopupOpen) return { success: true, note: 'Already open' };
+
+    var existing = document.getElementById('aysha-enrollment');
+    if (existing) existing.remove();
+
+    enrollmentPopupOpen = true;
+
+    var selectedCourse = course || '';
+    var courseNames = {
+      'logistics_basics': 'Логистика с нуля (24ч · 7 модулей)',
+      'strategic_nav': 'Стратегическая навигация PRO (72ч · 9 модулей)',
+      'bri_logistics': 'BRI Logistics (24ч · 7 модулей)'
+    };
+
+    var courseOptions = '<option value="">Выберите курс</option>' +
+      '<option value="logistics_basics"' + (selectedCourse === 'logistics_basics' ? ' selected' : '') + '>Логистика с нуля · 24ч · 7 модулей</option>' +
+      '<option value="strategic_nav"' + (selectedCourse === 'strategic_nav' ? ' selected' : '') + '>Стратегическая навигация PRO · 72ч · 9 модулей</option>' +
+      '<option value="bri_logistics"' + (selectedCourse === 'bri_logistics' ? ' selected' : '') + '>BRI Logistics · 24ч · 7 модулей</option>';
+
+    var popupOverlay = document.createElement('div');
+    popupOverlay.id = 'aysha-enrollment';
+    popupOverlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:10010;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.4s ease;font-family:Montserrat,-apple-system,BlinkMacSystemFont,sans-serif;';
+
+    popupOverlay.innerHTML = '' +
+      '<div id="aysha-enroll-card" style="background:#fff;border-radius:20px;padding:36px 32px 28px;max-width:420px;width:calc(100% - 40px);box-shadow:0 24px 80px rgba(0,0,0,0.25);transform:scale(0.92);transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1);position:relative;">' +
+        // Header
+        '<div style="text-align:center;margin-bottom:24px;">' +
+          '<div style="width:56px;height:56px;background:linear-gradient(135deg,#C6A46D,#A38450);border-radius:50%;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;">' +
+            '<svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M12 14l9-5-9-5-9 5 9 5z"/><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/><path d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+          '</div>' +
+          '<div style="font-size:20px;font-weight:700;color:#1B2A4A;margin-bottom:4px;">Запись на курс</div>' +
+          '<div style="font-size:13px;color:#888;">TCC HUB · tcchub.kz</div>' +
+        '</div>' +
+        // Course select
+        '<div style="margin-bottom:16px;">' +
+          '<label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:6px;">Курс</label>' +
+          '<select id="aysha-enroll-course" style="width:100%;padding:12px 14px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:14px;font-family:inherit;color:#333;background:#fafafa;outline:none;transition:border-color 0.3s;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url(\'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22%23999%22><path d=%22M7 10l5 5 5-5z%22/></svg>\');background-repeat:no-repeat;background-position:right 12px center;">' +
+            courseOptions +
+          '</select>' +
+        '</div>' +
+        // Name field
+        '<div style="margin-bottom:16px;">' +
+          '<label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:6px;">Имя</label>' +
+          '<input id="aysha-enroll-name" type="text" placeholder="Ваше имя" style="width:100%;padding:12px 14px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:14px;font-family:inherit;color:#333;background:#fafafa;outline:none;transition:border-color 0.3s;box-sizing:border-box;" />' +
+        '</div>' +
+        // Email field with voice indicator
+        '<div style="margin-bottom:20px;">' +
+          '<label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:6px;">Email <span style="color:#C6A46D;font-weight:400;">· можно продиктовать</span></label>' +
+          '<div style="position:relative;">' +
+            '<input id="aysha-enroll-email" type="email" placeholder="example@mail.com" style="width:100%;padding:12px 44px 12px 14px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:14px;font-family:inherit;color:#333;background:#fafafa;outline:none;transition:border-color 0.3s;box-sizing:border-box;" />' +
+            '<div id="aysha-enroll-mic" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);width:28px;height:28px;background:linear-gradient(135deg,#C6A46D,#A38450);border-radius:50%;display:flex;align-items:center;justify-content:center;opacity:0.4;transition:opacity 0.3s;">' +
+              '<svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        // Status message (for voice feedback)
+        '<div id="aysha-enroll-status" style="text-align:center;font-size:13px;color:#C6A46D;margin-bottom:16px;min-height:20px;transition:opacity 0.3s;"></div>' +
+        // Buttons
+        '<div style="display:flex;gap:12px;">' +
+          '<button id="aysha-enroll-cancel" style="flex:1;padding:13px;border-radius:12px;border:none;background:#f3f4f6;color:#555;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.2s;">Отмена</button>' +
+          '<button id="aysha-enroll-submit" style="flex:1;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#C6A46D,#A38450);color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 4px 16px rgba(198,164,109,0.4);transition:transform 0.15s,box-shadow 0.15s;">Записаться</button>' +
+        '</div>' +
+      '</div>';
+
+    document.body.appendChild(popupOverlay);
+
+    // Animate in
+    requestAnimationFrame(function () {
+      popupOverlay.style.opacity = '1';
+      var card = document.getElementById('aysha-enroll-card');
+      if (card) card.style.transform = 'scale(1)';
+    });
+
+    // Focus style on email
+    var emailInput = document.getElementById('aysha-enroll-email');
+    if (emailInput) {
+      emailInput.addEventListener('focus', function () {
+        emailInput.style.borderColor = '#C6A46D';
+        var mic = document.getElementById('aysha-enroll-mic');
+        if (mic) mic.style.opacity = '1';
+      });
+      emailInput.addEventListener('blur', function () {
+        emailInput.style.borderColor = '#e0e0e0';
+        var mic = document.getElementById('aysha-enroll-mic');
+        if (mic) mic.style.opacity = '0.4';
+      });
+    }
+
+    // Cancel button
+    var cancelBtn = document.getElementById('aysha-enroll-cancel');
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', function () { closeEnrollment(); });
+    }
+
+    // Submit button
+    var submitBtn = document.getElementById('aysha-enroll-submit');
+    if (submitBtn) {
+      submitBtn.addEventListener('click', function () { submitEnrollment(); });
+    }
+
+    // Click outside to close
+    popupOverlay.addEventListener('click', function (e) {
+      if (e.target === popupOverlay) closeEnrollment();
+    });
+
+    return { success: true, message: 'Форма записи открыта. Спроси у пользователя имя и email. Email можно продиктовать голосом.' };
+  }
+
+  function doFillEmail(email) {
+    var emailInput = document.getElementById('aysha-enroll-email');
+    if (!emailInput) {
+      return { success: false, error: 'Форма записи не открыта' };
+    }
+
+    // Clean up email — convert Russian speech patterns
+    var cleaned = email.toLowerCase()
+      .replace(/\s+/g, '')
+      .replace(/собака/g, '@')
+      .replace(/собачка/g, '@')
+      .replace(/эт/g, '@')
+      .replace(/точка/g, '.')
+      .replace(/дот/g, '.')
+      .replace(/ком$/g, 'com')
+      .replace(/гмейл/g, 'gmail')
+      .replace(/гмайл/g, 'gmail')
+      .replace(/мейл/g, 'mail')
+      .replace(/яндекс/g, 'yandex')
+      .replace(/рамблер/g, 'rambler')
+      .replace(/ру$/g, 'ru')
+      .replace(/кей зет$/g, 'kz')
+      .replace(/кз$/g, 'kz');
+
+    emailInput.value = cleaned;
+    emailInput.style.borderColor = '#C6A46D';
+    emailInput.style.background = '#fffbf0';
+
+    // Animate mic indicator
+    var mic = document.getElementById('aysha-enroll-mic');
+    if (mic) {
+      mic.style.opacity = '1';
+      mic.style.background = 'linear-gradient(135deg,#22c55e,#16a34a)';
+      setTimeout(function () {
+        mic.style.background = 'linear-gradient(135deg,#C6A46D,#A38450)';
+      }, 2000);
+    }
+
+    // Show status
+    var status = document.getElementById('aysha-enroll-status');
+    if (status) {
+      status.textContent = '✓ Email заполнен: ' + cleaned;
+      status.style.opacity = '1';
+    }
+
+    return { success: true, email: cleaned, message: 'Email заполнен: ' + cleaned + '. Попроси пользователя подтвердить правильность.' };
+  }
+
+  function closeEnrollment() {
+    var popup = document.getElementById('aysha-enrollment');
+    if (!popup) return;
+    var card = document.getElementById('aysha-enroll-card');
+    if (card) card.style.transform = 'scale(0.92)';
+    popup.style.opacity = '0';
+    setTimeout(function () {
+      popup.remove();
+      enrollmentPopupOpen = false;
+    }, 400);
+  }
+
+  function submitEnrollment() {
+    var course = document.getElementById('aysha-enroll-course');
+    var name = document.getElementById('aysha-enroll-name');
+    var email = document.getElementById('aysha-enroll-email');
+    var status = document.getElementById('aysha-enroll-status');
+
+    var courseVal = course ? course.value : '';
+    var nameVal = name ? name.value.trim() : '';
+    var emailVal = email ? email.value.trim() : '';
+
+    if (!emailVal || emailVal.indexOf('@') === -1) {
+      if (status) {
+        status.textContent = 'Пожалуйста, укажите email';
+        status.style.color = '#ef4444';
+      }
+      if (email) email.style.borderColor = '#ef4444';
+      return;
+    }
+
+    // Show success state
+    var card = document.getElementById('aysha-enroll-card');
+    if (card) {
+      card.innerHTML = '' +
+        '<div style="text-align:center;padding:20px 0;">' +
+          '<div style="width:64px;height:64px;background:linear-gradient(135deg,#22c55e,#16a34a);border-radius:50%;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;">' +
+            '<svg width="32" height="32" viewBox="0 0 24 24" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>' +
+          '</div>' +
+          '<div style="font-size:20px;font-weight:700;color:#1B2A4A;margin-bottom:8px;">Заявка отправлена!</div>' +
+          '<div style="font-size:14px;color:#666;margin-bottom:4px;">' + (nameVal ? nameVal + ', мы' : 'Мы') + ' свяжемся с вами</div>' +
+          '<div style="font-size:13px;color:#C6A46D;">' + emailVal + '</div>' +
+          '<div style="margin-top:24px;">' +
+            '<button onclick="document.getElementById(\'aysha-enrollment\').remove();window.enrollmentPopupOpen=false;" style="padding:12px 32px;border-radius:12px;border:none;background:linear-gradient(135deg,#C6A46D,#A38450);color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">Отлично</button>' +
+          '</div>' +
+        '</div>';
+    }
+
+    // Tell AI about success
+    sendTextToAI('[СИСТЕМНОЕ СООБЩЕНИЕ] Пользователь успешно записался на курс. Имя: ' + (nameVal || 'не указано') + ', Email: ' + emailVal + ', Курс: ' + (courseVal || 'не выбран') + '. Поздравь пользователя кратко.');
+  }
+
+  // ═════════════════════════════════════════════════════════════════════
+  // GLOBE STORY — Immersive Globe Cinematic on Main Page
+  // ═════════════════════════════════════════════════════════════════════
+
+  var globeStoryActive = false;
+  var globeStoryCleanup = null;
+
+  function startGlobeStory() {
+    var globe = window.tccGlobe;
+    if (!globe || globeStoryActive) return;
+    globeStoryActive = true;
+    globe.setDrag(true);
+
+    var globeWrap = document.querySelector('.globe-wrap');
+    var canvasEl = globe.canvas;
+
+    // ── Step 1: Fade out everything except globe ──
+    var allSections = document.querySelectorAll('body > *');
+    var hiddenEls = [];
+    allSections.forEach(function (el) {
+      if (el === globeWrap || el.contains(globeWrap) || el.contains(canvasEl)) return;
+      if (el.id === 'aysha-btn' || el.id === 'aysha-status' || el.id === 'aysha-toast') return;
+      if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE' || el.tagName === 'LINK') return;
+      hiddenEls.push({ el: el, origOpacity: el.style.opacity, origTransition: el.style.transition, origPointer: el.style.pointerEvents });
+      el.style.transition = 'opacity 1s ease';
+      el.style.opacity = '0';
+      el.style.pointerEvents = 'none';
+    });
+
+    // Fade hero children except globe-wrap
+    var heroEl = globeWrap ? globeWrap.parentElement : null;
+    var heroHidden = [];
+    if (heroEl) {
+      Array.from(heroEl.children).forEach(function (child) {
+        if (child === globeWrap || child.contains(globeWrap)) return;
+        heroHidden.push({ el: child, origOpacity: child.style.opacity, origTransition: child.style.transition });
+        child.style.transition = 'opacity 1s ease';
+        child.style.opacity = '0';
+        child.style.pointerEvents = 'none';
+      });
+    }
+
+    // ── Step 2: Globe → center of screen (not fullscreen, keep round) ──
+    var origGlobeStyle = {};
+    ['position','top','left','right','width','height','transform','transition','zIndex','bottom','maxWidth','aspectRatio'].forEach(function(k) {
+      origGlobeStyle[k] = globeWrap.style[k];
+    });
+
+    globeWrap.style.transition = 'all 1.5s cubic-bezier(0.4, 0, 0.2, 1)';
+    globeWrap.style.position = 'fixed';
+    globeWrap.style.top = '50%';
+    globeWrap.style.left = '50%';
+    globeWrap.style.transform = 'translate(-50%, -50%)';
+    globeWrap.style.width = 'min(65vh, 55vw)';
+    globeWrap.style.height = 'auto';
+    globeWrap.style.aspectRatio = '1';
+    globeWrap.style.bottom = 'auto';
+    globeWrap.style.right = 'auto';
+    globeWrap.style.zIndex = '9999';
+
+    // Dark background
+    var overlay = document.createElement('div');
+    overlay.id = 'globe-story-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(10,15,30,0.95);z-index:9998;opacity:0;transition:opacity 1s ease;pointer-events:none;';
+    document.body.appendChild(overlay);
+    requestAnimationFrame(function () { overlay.style.opacity = '1'; });
+
+    // ── Step 3: UI Container ──
+    var uiWrap = document.createElement('div');
+    uiWrap.id = 'globe-story-ui';
+    uiWrap.style.cssText = 'position:fixed;inset:0;z-index:10000;pointer-events:none;font-family:Montserrat,-apple-system,sans-serif;';
+    uiWrap.innerHTML = '' +
+      // Top bar — title
+      '<div id="gs-top" style="position:absolute;top:32px;left:50%;transform:translateX(-50%);text-align:center;opacity:0;transition:opacity 0.8s ease;">' +
+        '<div style="font-size:11px;color:rgba(198,164,109,0.6);letter-spacing:4px;text-transform:uppercase;margin-bottom:6px;">TransCaspian Cargo</div>' +
+        '<div style="font-size:22px;font-weight:700;color:#fff;">Средний Коридор ТМТМ</div>' +
+        '<div style="width:60px;height:2px;background:linear-gradient(90deg,transparent,#C6A46D,transparent);margin:10px auto 0;"></div>' +
+      '</div>' +
+      // Left panel — stats
+      '<div id="gs-left" style="position:absolute;left:32px;top:50%;transform:translateY(-50%);width:220px;opacity:0;transition:opacity 0.8s ease;">' +
+      '</div>' +
+      // Right panel — info
+      '<div id="gs-right" style="position:absolute;right:32px;top:50%;transform:translateY(-50%);width:220px;opacity:0;transition:opacity 0.8s ease;">' +
+      '</div>' +
+      // Bottom — city label
+      '<div id="gs-bottom" style="position:absolute;bottom:36px;left:50%;transform:translateX(-50%);text-align:center;opacity:0;transition:opacity 0.6s ease;">' +
+      '</div>' +
+      // Progress bar
+      '<div id="gs-progress" style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);width:300px;height:3px;background:rgba(255,255,255,0.1);border-radius:2px;">' +
+        '<div id="gs-progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#C6A46D,#E8D5B0);border-radius:2px;transition:width 0.5s ease;"></div>' +
+      '</div>';
+    document.body.appendChild(uiWrap);
+
+    // Close button
+    var closeBtn = document.createElement('button');
+    closeBtn.textContent = '✕';
+    closeBtn.style.cssText = 'position:fixed;top:24px;right:24px;z-index:10001;background:rgba(255,255,255,0.08);border:1px solid rgba(198,164,109,0.2);color:rgba(255,255,255,0.6);width:40px;height:40px;border-radius:50%;font-size:18px;cursor:pointer;backdrop-filter:blur(8px);transition:all 0.3s;pointer-events:all;';
+    closeBtn.addEventListener('mouseenter', function () { closeBtn.style.background = 'rgba(198,164,109,0.2)'; closeBtn.style.color = '#fff'; });
+    closeBtn.addEventListener('mouseleave', function () { closeBtn.style.background = 'rgba(255,255,255,0.08)'; closeBtn.style.color = 'rgba(255,255,255,0.6)'; });
+    closeBtn.addEventListener('click', function () { endGlobeStory(); });
+    document.body.appendChild(closeBtn);
+
+    // ── Step 4: Scene definitions — each scene has waypoint + side panels ──
+    var scenes = [
+      {
+        lo: 70, la: 42, scale: 1.0, dur: 3000, pause: 3500,
+        city: '', cityInfo: '',
+        left: '<div style="margin-bottom:20px;">' +
+          '<div style="font-size:11px;color:rgba(198,164,109,0.5);letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;">Платформа</div>' +
+          '<div style="font-size:15px;color:#fff;font-weight:600;margin-bottom:6px;">Экспертиза логистики Евразии</div>' +
+          '<div style="font-size:12px;color:rgba(255,255,255,0.5);line-height:1.6;">Аналитика, обучение, консалтинг и международные партнёрства</div>' +
+        '</div>' +
+        '<div style="border-top:1px solid rgba(198,164,109,0.15);padding-top:14px;">' +
+          '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;"><span style="font-size:24px;font-weight:700;color:#C6A46D;">5</span><span style="font-size:11px;color:rgba(255,255,255,0.4);">услуг</span></div>' +
+          '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;"><span style="font-size:24px;font-weight:700;color:#C6A46D;">8+</span><span style="font-size:11px;color:rgba(255,255,255,0.4);">партнёров</span></div>' +
+          '<div style="display:flex;align-items:baseline;gap:8px;"><span style="font-size:24px;font-weight:700;color:#C6A46D;">77</span><span style="font-size:11px;color:rgba(255,255,255,0.4);">лет опыта в команде</span></div>' +
+        '</div>',
+        right: '<div style="margin-bottom:20px;">' +
+          '<div style="font-size:11px;color:rgba(198,164,109,0.5);letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;">Средний коридор 2024</div>' +
+          '<div style="font-size:28px;font-weight:700;color:#fff;">4.5<span style="font-size:14px;color:rgba(255,255,255,0.5);"> млн тонн</span></div>' +
+          '<div style="font-size:12px;color:rgba(198,164,109,0.7);margin-top:4px;">+62% за год</div>' +
+        '</div>' +
+        '<div style="border-top:1px solid rgba(198,164,109,0.15);padding-top:14px;">' +
+          '<div style="font-size:12px;color:rgba(255,255,255,0.5);line-height:1.8;">' +
+            '6500 км маршрут<br>15 дней транзита<br>90 637 TEU контейнеров<br>5× рост за 7 лет' +
+          '</div>' +
+        '</div>'
+      },
+      {
+        lo: 121.5, la: 31.2, scale: 1.15, dur: 3000, pause: 3000,
+        city: 'Шанхай', cityInfo: 'Старт маршрута · Крупнейший порт мира',
+        left: '', right: ''
+      },
+      {
+        lo: 84, la: 44, scale: 1.2, dur: 3000, pause: 3000,
+        city: 'Хоргос', cityInfo: 'Сухой порт · 372K TEU · Обработка 1 час',
+        left: '',
+        right: '<div style="font-size:11px;color:rgba(198,164,109,0.5);letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;">Граница КНР-КЗ</div>' +
+          '<div style="font-size:14px;color:#fff;line-height:1.7;">Крупнейший сухой порт мира на границе Китая и Казахстана. Обработка контейнера за 1 час.</div>'
+      },
+      {
+        lo: 51.9, la: 47.1, scale: 1.25, dur: 3500, pause: 4000,
+        city: 'Атырау — TCC Hub', cityInfo: 'Штаб-квартира TransCaspian Cargo',
+        left: '<div style="font-size:11px;color:rgba(198,164,109,0.5);letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;">TCC Hub</div>' +
+          '<div style="font-size:14px;color:#fff;font-weight:600;margin-bottom:8px;">Образовательная платформа</div>' +
+          '<div style="font-size:12px;color:rgba(255,255,255,0.5);line-height:1.7;">Патент РК №11718<br>Аккредитация CAAAE<br>200+ выпускников</div>',
+        right: '<div style="font-size:11px;color:rgba(198,164,109,0.5);letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;">3 курса</div>' +
+          '<div style="font-size:13px;color:#fff;line-height:2;">' +
+            '<div style="padding:6px 0;border-bottom:1px solid rgba(198,164,109,0.1);">📘 Логистика с нуля · 24ч</div>' +
+            '<div style="padding:6px 0;border-bottom:1px solid rgba(198,164,109,0.1);">📗 Стратегическая навигация PRO · 72ч</div>' +
+            '<div style="padding:6px 0;">📙 BRI Logistics · 24ч</div>' +
+          '</div>'
+      },
+      {
+        lo: 50, la: 42, scale: 1.15, dur: 3000, pause: 3000,
+        city: 'Актау → Баку', cityInfo: 'Каспийская переправа',
+        left: '', right: ''
+      },
+      {
+        lo: 37, la: 41.5, scale: 1.1, dur: 3000, pause: 3000,
+        city: 'Тбилиси — Батуми — Стамбул', cityInfo: 'BTK железная дорога → Европа',
+        left: '',
+        right: '<div style="font-size:11px;color:rgba(198,164,109,0.5);letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;">Партнёры</div>' +
+          '<div style="font-size:13px;color:rgba(255,255,255,0.7);line-height:2;">' +
+            'CILT Kazakhstan<br>ALT University<br>TITR Association<br>EBRD<br>EU Global Gateway' +
+          '</div>'
+      },
+      {
+        lo: 4.5, la: 51.9, scale: 1.1, dur: 3000, pause: 3000,
+        city: 'Роттердам', cityInfo: 'Финиш · Крупнейший порт Европы',
+        left: '', right: ''
+      },
+      {
+        lo: 55, la: 40, scale: 1.0, dur: 2500, pause: 2000,
+        city: '', cityInfo: '',
+        left: '', right: ''
+      }
+    ];
+
+    var currentScene = 0;
+    var animating = true;
+    var origScale = globe.proj.scale();
+
+    // Smooth rotation/zoom
+    function animateToScene(scene, callback) {
+      if (!animating) return;
+      var startRot = [globe.rot[0], globe.rot[1]];
+      var startScale = globe.proj.scale();
+      var endRot = [-scene.lo, -scene.la];
+      var endScale = origScale * scene.scale;
+      var startTime = null;
+
+      function step(timestamp) {
+        if (!animating) return;
+        if (!startTime) startTime = timestamp;
+        var progress = Math.min((timestamp - startTime) / scene.dur, 1);
+        var eased = progress < 0.5
+          ? 4 * progress * progress * progress
+          : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+        globe.rot[0] = startRot[0] + (endRot[0] - startRot[0]) * eased;
+        globe.rot[1] = startRot[1] + (endRot[1] - startRot[1]) * eased;
+        globe.proj.scale(startScale + (endScale - startScale) * eased);
+
+        if (progress < 1) {
+          requestAnimationFrame(step);
+        } else {
+          if (callback) callback();
+        }
+      }
+      requestAnimationFrame(step);
+    }
+
+    function updatePanels(scene) {
+      var left = document.getElementById('gs-left');
+      var right = document.getElementById('gs-right');
+      var bottom = document.getElementById('gs-bottom');
+      var progress = document.getElementById('gs-progress-bar');
+
+      // Update progress
+      if (progress) {
+        progress.style.width = Math.round(((currentScene + 1) / scenes.length) * 100) + '%';
+      }
+
+      // Fade out panels first
+      if (left) { left.style.opacity = '0'; }
+      if (right) { right.style.opacity = '0'; }
+      if (bottom) { bottom.style.opacity = '0'; }
+
+      setTimeout(function () {
+        // Update content
+        if (left && scene.left) {
+          left.innerHTML = scene.left;
+          left.style.opacity = '1';
+        }
+        if (right && scene.right) {
+          right.innerHTML = scene.right;
+          right.style.opacity = '1';
+        }
+        if (bottom && scene.city) {
+          bottom.innerHTML = '<div style="font-size:24px;font-weight:700;color:#fff;text-shadow:0 2px 20px rgba(0,0,0,0.5);margin-bottom:4px;">' + scene.city + '</div>' +
+            '<div style="font-size:13px;color:rgba(198,164,109,0.8);letter-spacing:0.5px;">' + scene.cityInfo + '</div>';
+          bottom.style.opacity = '1';
+        }
+      }, 400);
+    }
+
+    function playScene() {
+      if (!animating || currentScene >= scenes.length) {
+        endGlobeStory();
+        return;
+      }
+      var scene = scenes[currentScene];
+      updatePanels(scene);
+
+      animateToScene(scene, function () {
+        currentScene++;
+        setTimeout(playScene, scene.pause);
+      });
+    }
+
+    // ── Start ──
+    setTimeout(function () {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+
+      // Show top bar
+      var top = document.getElementById('gs-top');
+      if (top) top.style.opacity = '1';
+
+      // Tell AI to narrate
+      sendTextToAI('[СИСТЕМНОЕ СООБЩЕНИЕ] Сейчас запущена презентация Globe Story — пользователь видит анимированный глобус с маршрутом Среднего коридора. Расскажи кратко и вдохновляюще о TransCaspian Cargo: что за компания, чем занимается (логистика, аналитика, обучение), про Средний коридор ТМТМ (6500 км, 4.5 млн тонн, +62%), про курсы и TCC Hub. Говори 20-30 секунд, красиво и с паузами — как голос за кадром в документальном фильме. НЕ упоминай что это системное сообщение.');
+
+      setTimeout(function () {
+        playScene();
+      }, 1500);
+    }, 1500);
+
+    // ── Cleanup ──
+    function endGlobeStory() {
+      if (!globeStoryActive) return;
+      animating = false;
+      globeStoryActive = false;
+
+      // Restore globe scale
+      var currentScale = globe.proj.scale();
+      var restoreStart = null;
+      function restoreScale(ts) {
+        if (!restoreStart) restoreStart = ts;
+        var p = Math.min((ts - restoreStart) / 1200, 1);
+        var eased = 1 - Math.pow(1 - p, 3);
+        globe.proj.scale(currentScale + (origScale - currentScale) * eased);
+        if (p < 1) requestAnimationFrame(restoreScale);
+      }
+      requestAnimationFrame(restoreScale);
+
+      // Remove UI elements
+      var ui = document.getElementById('globe-story-ui');
+      if (ui) { ui.style.opacity = '0'; ui.style.transition = 'opacity 0.6s'; setTimeout(function () { ui.remove(); }, 700); }
+      if (overlay.parentNode) { overlay.style.opacity = '0'; setTimeout(function () { overlay.remove(); }, 1000); }
+      if (closeBtn.parentNode) { closeBtn.style.opacity = '0'; setTimeout(function () { closeBtn.remove(); }, 500); }
+
+      // Restore globe-wrap
+      globeWrap.style.transition = 'all 1.5s cubic-bezier(0.4, 0, 0.2, 1)';
+      Object.keys(origGlobeStyle).forEach(function (k) {
+        globeWrap.style[k] = origGlobeStyle[k] || '';
+      });
+
+      // Restore hidden elements
+      setTimeout(function () {
+        hiddenEls.forEach(function (item) {
+          item.el.style.transition = 'opacity 0.8s ease';
+          item.el.style.opacity = item.origOpacity || '';
+          item.el.style.pointerEvents = item.origPointer || '';
+        });
+        heroHidden.forEach(function (item) {
+          item.el.style.transition = 'opacity 0.8s ease';
+          item.el.style.opacity = item.origOpacity || '';
+          item.el.style.pointerEvents = '';
+        });
+        globe.setDrag(false);
+      }, 500);
+    }
+
+    globeStoryCleanup = endGlobeStory;
+  }
+
+  // Expose for testing from console
+  window.ayshaGlobeStory = startGlobeStory;
+  window.ayshaEnroll = doShowEnrollment;
+  window.ayshaFillEmail = doFillEmail;
+
   function animateCountUp(el) {
     var target = parseFloat(el.getAttribute('data-target')) || 0;
     var suffix = el.getAttribute('data-suffix') || '';
@@ -1841,11 +2539,18 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
   // ─── MICROPHONE CAPTURE ───────────────────────────────────────────────
   function startMicCapture() {
     if (!audioCtx || !micStream) return;
+    if (audioCtx.state === 'suspended') {
+      log('mic', 'AudioContext suspended, resuming...');
+      audioCtx.resume();
+    }
+    log('mic', 'Starting capture, audioCtx.state=' + audioCtx.state + ', sampleRate=' + audioCtx.sampleRate);
 
     sourceNode = audioCtx.createMediaStreamSource(micStream);
     scriptNode = audioCtx.createScriptProcessor(BUFFER_SIZE, 1, 1);
 
+    var audioChunkCount = 0;
     scriptNode.onaudioprocess = function (e) {
+      if (!sessionActive) return;
       if (state !== 'listening' && state !== 'speaking' && state !== 'thinking') return;
       if (!ws || ws.readyState !== WebSocket.OPEN) return;
 
@@ -1862,6 +2567,8 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
           }]
         }
       }));
+      audioChunkCount++;
+      if (audioChunkCount % 50 === 1) log('mic', 'Audio chunks sent: ' + audioChunkCount);
     };
 
     sourceNode.connect(scriptNode);
@@ -1986,10 +2693,16 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
     return bytes.buffer;
   }
 
-  // ─── TOUR RESUME (after page navigation) ──────────────────────────────
-  function checkTourResume() {
+  // ─── AUTO-RECONNECT (after page navigation) ─────────────────────────
+  function checkAutoReconnect() {
+    var reconnectFlag = sessionStorage.getItem('aysha_reconnect');
     var tourActiveFlag = sessionStorage.getItem('aysha_tour_active');
+
+    // Clean up flags
+    sessionStorage.removeItem('aysha_reconnect');
+
     if (tourActiveFlag === 'true') {
+      // Tour resume
       var step = parseInt(sessionStorage.getItem('aysha_tour_step') || '0', 10);
       sessionStorage.removeItem('aysha_tour_active');
       sessionStorage.removeItem('aysha_tour_step');
@@ -1997,11 +2710,27 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
       tourActive = true;
       tourStep = step;
 
+      var ctx = getPageContext();
+      pendingContextAfterSetup = '[СИСТЕМНОЕ СООБЩЕНИЕ] Ты перешла на страницу "' + ctx.page + '". ' + ctx.description + ' Это шаг ' + (step + 1) + ' из ' + TOUR_STEPS.length + ' в туре. Кратко расскажи пользователю что он видит на этой странице (1-2 предложения), затем вызови show_next_tour_step чтобы продолжить тур.';
+
       setTimeout(function () {
         firstInteraction = false;
         hasBeenWelcomed = true;
         startSession();
-      }, 1500);
+      }, 1000);
+      return;
+    }
+
+    if (reconnectFlag === 'true') {
+      // Regular navigation reconnect
+      var ctx = getPageContext();
+      pendingContextAfterSetup = '[СИСТЕМНОЕ СООБЩЕНИЕ] Ты перешла на страницу "' + ctx.page + '". ' + ctx.description + ' Кратко расскажи пользователю что он видит (1-2 предложения).';
+
+      setTimeout(function () {
+        firstInteraction = false;
+        hasBeenWelcomed = true;
+        startSession();
+      }, 1000);
     }
   }
 
@@ -2010,7 +2739,7 @@ TransCaspian Cargo (TCC) — платформа отраслевой экспе�
     injectStyles();
     createUI();
 
-    checkTourResume();
+    checkAutoReconnect();
 
     if (!hasBeenWelcomed) {
       welcomeBubbleTimer = setTimeout(function () {

@@ -1033,6 +1033,23 @@ canvas.addEventListener('click',e=>{
 
 canvas.style.cursor='grab';
 requestAnimationFrame(render);
+
+// Expose globe API for voice assistant cinematic mode
+window.tccGlobe = {
+  proj: proj,
+  rot: rot,
+  canvas: canvas,
+  ctx: ctx,
+  R: R,
+  W: W,
+  H: H,
+  cx: cx,
+  cy: cy,
+  cities: cities,
+  corridor: corridor,
+  setDrag: function(v) { drag = v; },
+  getDrag: function() { return drag; }
+};
 })();
 // Scroll reveal
 (function(){
